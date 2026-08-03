@@ -1,5 +1,30 @@
 # Open questions — things we need to understand but don't yet
 
+## ⏳ OWED (on-device validation): confirm the `0x55` name getReport zero-fill read-back on a loaded build
+
+**Fix is committed + off-device-verified; on-device read-back not yet done.** Commit `3160412` zero-fills the
+`0x55` (device-name) getReport in `MavericksHIDShell.cpp` so the fixed-size report's tail can't leak
+uninitialized kernel memory (pure helper `src/mt2_name_report.c` + host test `tests/test_name_report.c`, both
+green). The write-side counterpart `b6870da` (zero-pad on rename so a shorter name clears stale tail bytes) is
+already validated. The remaining owed step is a **loaded-build read-back**: prove the running kext returns a
+clean, zero-filled 64-byte name report (no trailing garbage).
+
+Blocked on two conditions, neither currently met:
+1. **The fix must be on the boot path.** As of 2026-08-03 the deployed kext is shipped **0.5.2**
+   (`/usr/local/lib/voodooinputmavericks/…`, dated Jul 27, `nm` shows **zero** `mt2_name_report` symbols) —
+   it predates `3160412`. A `2026-08-03` reboot loaded this old kext; the fix was never `install-pkg`'d. So
+   an `install-pkg` of the current tree (then a clean reboot to load it — hot-reload is UNSAFE, use-after-
+   unload panic per `bac0ece`) is required first. **Simplest path: fold into the 0.5.3 release, which
+   install+reboots anyway, and confirm the read-back as a side effect** (the previous session's own
+   recommendation — the fix is low-risk).
+2. **The MT2 must be on Bluetooth.** The `0x55` name report lives in the BT report descriptor only (vendor
+   usage `0xff02`, 64-byte feature report), not USB. Validation therefore requires the MT2 connected over BT.
+
+Read-back caveat: `tools/re mt2-name` as it stands probes the RAW HID devices via IOKit `GET_REPORT` (on BT
+it returned `0x55: GET_REPORT error 0xe00002c0`) — that path is NOT our shell's synthetic getReport, so
+confirm the intended read-back mechanism (shell-served getReport while our satellite drives BT) when picking
+this up.
+
 ## ✅ FIXED (2026-07-22): reboot-while-on-BT hung the warm restart at EFI — daemon now disconnects at quiesce
 
 > **RESOLVED — commit `7b76a05`.** The fix was NOT the kext-shutdown-hook proposed below; it was simpler +
