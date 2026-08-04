@@ -624,7 +624,10 @@ sub_deployed() {  # what MT2 driver is ACTUALLY loaded + driving right now, and 
   fi
 
   echo "== SATELLITE DRIVING? (live instance count) =="
-  for c in MT2USBReader MT2BTReader MavericksVoodooInput MavericksHIDShell; do
+  # Mux class is upstream's VoodooInput (the hand-written MavericksVoodooInput was retired in the 2026-07-22
+  # mux swap, cd01fe9); VoodooInputTerminal is the generic terminal the mux drives (our MavericksTerminalBackend
+  # is its concrete subclass). Counting the old MavericksVoodooInput name always read 0 and hid the live stack.
+  for c in MT2USBReader MT2BTReader VoodooInput VoodooInputTerminal MavericksHIDShell; do
     printf "  %-34s %s\n" "$c" "$(cnt "$c")"
   done
   printf "  %-34s %s   <- 1 = scroll/swipe/tap LIVE\n" "AppleMultitouchDeviceUserClient" "$(cnt AppleMultitouchDeviceUserClient)"

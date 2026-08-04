@@ -3,6 +3,16 @@
 > **✅ PIECE 3 SHIPPED 2026-07-22 — fork (B) chosen. Upstream's verbatim `VoodooInput.cpp` IS our mux now;
 > `MavericksVoodooInput` retired. See "SHIPPED" section at the bottom for the as-built record. The sizing +
 > the (A)/(B) analysis below are preserved as the reasoning that led there.**
+>
+> **✅ UPDATE 2026-08-04 — the two steps this doc calls "deferred / remaining diff-reduction" ALSO SHIPPED
+> (all in deployed 0.5.2): (1) the `version_major < kVoodooInputVersionElCapitan` runtime gate replaced the
+> `MAVERICKS_TERMINAL` build-exclusion (`ede6572`; simulator/actuator/trackpoint vendored + 10.9-compiled);
+> (2) the separability step — an abstract `VoodooInputTerminal` interface the mux drives by advertised class
+> name, so the mux no longer names the MT2 driver (`0c517b3` + `cd01fe9`, "MT2 leaves the mux entirely").
+> Live-verified on-device: `VoodooInput=1`, `VoodooInputTerminal=1`, `MavericksTerminalBackend=1`. So the
+> "deferred, not yet done" note under North-star and the "remaining diff-reduction is structural" para below
+> are HISTORY — done. The only remaining work on this stream is opening the actual upstream PR. See the
+> "SHIPPED — the version_major gate + generic terminal" section at the bottom.**
 
 **Context.** We currently *vendor* only the 3 VoodooInput ABI headers (verbatim, SHA-pinned) and run our
 OWN reimplemented mux (`com_schmonz_VoodooInput`) + fabricated-AMD terminal. The end-state ambition: fork
@@ -180,3 +190,33 @@ not get provider properties" / "backend start failed"); user confirmed cursor + 
 unplug/replug (the teardown-ordering panic candidate). **⚠️ BT path NOT exercised** (device was on USB;
 `MT2BTReader = 0`) — the BT reader binding + the retyped `gBtMux` battery bridge are shared-code but
 unvalidated at runtime. Follow-up: BT cold-boot + battery-%-in-pane check.
+
+## SHIPPED — the version_major gate + generic terminal interface (2026-07-22, recorded 2026-08-04)
+
+The build-macro seam above was an intermediate step; two further commits finished the "reconstructable end
+state" the North-star section describes, and both are in deployed 0.5.2.
+
+1. **`ede6572` — additive `version_major` gate, not a build-exclusion.** Vendored + 10.9-compiled upstream's
+   `VoodooInputSimulator{,Actuator}Device` + `TrackpointDevice` (pristine, same SHA `d897813`) so both
+   branches always compile. The `#ifdef MAVERICKS_TERMINAL` *exclusion* of the simulator became an *additive*
+   overlay: `start()` runs the upstream alloc unconditionally, and a guarded `if (version_major <
+   kVoodooInputVersionElCapitan)` branch selects the legacy terminal and skips the simulator. `-include
+   IOKit/IOLib.h` is force-fed to the sim/actuator TUs (compile flag, sources stay byte-identical to upstream).
+   This executed the `2026-07-22-voodooinput-version-gate-terminal.md` plan (its VG-Tasks 1–3).
+
+2. **`0c517b3` + `cd01fe9` — the mux no longer names the MT2 driver.** Added abstract
+   `VoodooInputTerminal : OSObject` (`start/handleEvent/updateDimensions/stop`, authored locally as a
+   proposed-upstream interface — see `PROVENANCE`/`VoodooInputTerminal.hpp`). The mux's `< ElCapitan` branch
+   now reads a `VoodooInputLegacyTerminalClass` string the provider advertises, `OSTypeAlloc`s that class,
+   `OSDynamicCast`s to `VoodooInputTerminal`, and drives it — zero `Mavericks*` references in `VoodooInput.cpp`.
+   `MavericksTerminalBackend` became a concrete `VoodooInputTerminal` subclass in the driver, out of the mux.
+   Result: `unifdef -UMAVERICKS_TERMINAL VoodooInput.cpp` == pristine, and the guarded delta is a clean,
+   MT2-free upstream patch (the gate constant + the generic-terminal seam).
+
+**Validation:** on-device (deployed 0.5.2, USB) 2026-08-04 — `VoodooInput=1`, `VoodooInputTerminal=1`,
+`MavericksTerminalBackend=1`, `MT2USBReader=1`, `MavericksVoodooInput=<no such class>`; cursor + gestures
+live. Runtime path unchanged from the build-macro seam (same fabricated-AMD backend), as the gate intended.
+BT still unexercised (same caveat as above).
+
+**Remaining on this stream:** open the actual PR to acidanthera/VoodooInput (the mux diff is now mergeable —
+`version_major` gate + generic terminal interface, no Mavericks names). Everything upstream of the PR is done.
