@@ -13,6 +13,22 @@
 > "deferred, not yet done" note under North-star and the "remaining diff-reduction is structural" para below
 > are HISTORY — done. The only remaining work on this stream is opening the actual upstream PR. See the
 > "SHIPPED — the version_major gate + generic terminal" section at the bottom.**
+>
+> **✅ UPDATE 2026-08-05 — the `MAVERICKS_TERMINAL` build macro is RETIRED (`6306a60`).** The contribution now
+> lives on its own branch, `voodooinput-legacy-terminal`, rooted on the real acidanthera HEAD `d897813` (== our
+> vendored SHA): commit `A1` adds the abstract `VoodooInputTerminal` + the additive `version_major <
+> kVoodooInputVersionElCapitan` gate (un-guarded, falling through to the simulator when no terminal is
+> advertised); commit `A2` lowers the KPI floor to Darwin 13. Because that branch is now the canonical
+> pristine-relative diff, the `unifdef -UMAVERICKS_TERMINAL == pristine` invariant no longer needs to live
+> inside our vendored file — so we compile the seam UNCONDITIONALLY and dropped the target-wide define. Our
+> shipped `third_party/VoodooInput/VoodooInput.{cpp,hpp,IDs.hpp}` are now byte-identical to the contribution
+> (**ship == contribute**). Behavior on 10.9 unchanged (we always advertise `VoodooInputLegacyTerminalClass`, so
+> the gate takes the same path the old unconditional `goto` did); native build + ctest green (34/34). `IOLog`
+> reaches `VoodooInput.cpp` via a `-include <IOKit/IOLib.h>` compile flag now that the macro block (which
+> carried that include) is gone. On-device is a no-op on the dispatch path — confirmation can ride the next
+> kext reload / 0.5.3. This is part of the "invented fork history" work (`docs/superpowers/` specs/plans dated
+> 2026-08-05): the `voodooinput-legacy-terminal` branch is the upstream-PR artifact; a `mavericks-fork` branch
+> (the full-product invented history) is planned next.**
 
 **Context.** We currently *vendor* only the 3 VoodooInput ABI headers (verbatim, SHA-pinned) and run our
 OWN reimplemented mux (`com_schmonz_VoodooInput`) + fabricated-AMD terminal. The end-state ambition: fork
