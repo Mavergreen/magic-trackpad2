@@ -15,9 +15,7 @@ constexpr int kVoodooInputProductMacbookAir10_1 = 0x281;
 constexpr int kVoodooInputVendorApple = 0x5ac;
 
 constexpr int kVoodooInputVersionMonterey = 21;
-#ifdef MAVERICKS_TERMINAL
-constexpr int kVoodooInputVersionElCapitan = 15;   // Darwin 15; gate for our < El Capitan (10.11) terminal
-#endif
+constexpr int kVoodooInputVersionElCapitan = 15;   // Darwin 15; gate for the pre-El Capitan terminal
 
 int VoodooInputGetProductId();
 

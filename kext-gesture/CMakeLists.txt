@@ -40,12 +40,13 @@ target_include_directories(mt2gesture_kext PRIVATE
   ${CMAKE_SOURCE_DIR}/third_party/VoodooInput
   ${CMAKE_SOURCE_DIR}/third_party/VoodooInput/VoodooInputMultitouch)
 
-# The vendored upstream mux + simulator/actuator/trackpoint compile verbatim (always); our terminal is
-# selected in at runtime via the MAVERICKS_TERMINAL seam in VoodooInput.{cpp,hpp,IDs.hpp}. It MUST be
-# target-wide, not per-source: multiple TUs include VoodooInput.hpp (the mux itself AND upstream's
-# VoodooInputSimulatorDevice), and all must see the SAME VoodooInput class layout — the guarded
-# `legacyTerminal` member. A per-source define would give one TU a different layout -> vtable/ABI mismatch.
-target_compile_definitions(mt2gesture_kext PRIVATE MAVERICKS_TERMINAL)
+# The vendored upstream mux + simulator/actuator/trackpoint compile verbatim (always). Our pre-El Capitan
+# terminal seam (the `version_major < kVoodooInputVersionElCapitan` gate + the generic VoodooInputTerminal
+# it drives) is now compiled UNCONDITIONALLY — the former target-wide MAVERICKS_TERMINAL build macro is
+# retired. Our shipped VoodooInput.{cpp,hpp,IDs.hpp} == the upstream contribution (branch
+# `voodooinput-legacy-terminal`), so there is nothing to gate: the `legacyTerminal` member is always present
+# (one uniform class layout for every TU that includes VoodooInput.hpp) and the gate is a runtime no-op on
+# >= El Capitan. Nothing to define here.
 
 # Compile the shared .c as C++ (kext mangling must match the .cpp callers; some shared
 # headers lack extern "C", so plain-C compilation would mismatch and fail to link).
@@ -64,9 +65,12 @@ set_source_files_properties(
   ${CMAKE_SOURCE_DIR}/third_party/VoodooInput/Trackpoint/TrackpointDevice.cpp
   PROPERTIES COMPILE_DEFINITIONS KERNEL=1)
 
-# Upstream's simulator/actuator reach IOLog/IOMalloc/IOFree via its umbrella include; our per-file kext build
-# doesn't, so force-include IOLib for exactly those two TUs. Keeps the vendored sources byte-identical to upstream.
+# Upstream's mux + simulator/actuator reach IOLog/IOMalloc/IOFree via its umbrella include; our per-file kext
+# build doesn't, so force-include IOLib for exactly these TUs. Keeps the vendored sources byte-identical to
+# upstream (VoodooInput.cpp joined this list when the MAVERICKS_TERMINAL macro — which used to carry its own
+# `#include <IOKit/IOLib.h>` — was retired; the un-guarded source now matches the contribution verbatim).
 set_source_files_properties(
+  ${CMAKE_SOURCE_DIR}/third_party/VoodooInput/VoodooInput.cpp
   ${CMAKE_SOURCE_DIR}/third_party/VoodooInput/VoodooInputSimulator/VoodooInputSimulatorDevice.cpp
   ${CMAKE_SOURCE_DIR}/third_party/VoodooInput/VoodooInputSimulator/VoodooInputActuatorDevice.cpp
   PROPERTIES COMPILE_OPTIONS "-include;IOKit/IOLib.h")

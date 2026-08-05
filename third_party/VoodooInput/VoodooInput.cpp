@@ -12,11 +12,8 @@
 #include "VoodooInputSimulator/VoodooInputActuatorDevice.hpp"
 #include "VoodooInputSimulator/VoodooInputSimulatorDevice.hpp"
 #include "Trackpoint/TrackpointDevice.hpp"
-#ifdef MAVERICKS_TERMINAL
-#include <IOKit/IOLib.h>
 #include "VoodooInputTerminal.hpp"
 #include <libkern/c++/OSString.h>
-#endif
 
 #include "libkern/version.h"
 
@@ -36,32 +33,32 @@ bool VoodooInput::start(IOService *provider) {
         return false;
     }
 
-#ifdef MAVERICKS_TERMINAL
-    // 10.9 (< El Capitan): upstream's simulator/actuator/trackpoint can't dispatch here because the OS
-    // multitouch stack won't bind a virtual IOHIDDevice. Drive a provider-advertised concrete terminal
-    // instead and skip the simulator subsystem. Same VoodooInputEvent stream (VoodooInputTerminal).
+    // On pre-El Capitan macOS the multitouch stack won't bind a virtual IOHIDDevice, so the simulator can't
+    // dispatch. If the provider advertises a concrete VoodooInputTerminal (by class name), drive that instead
+    // and skip the simulator. If none is advertised (or it fails to start), fall through to the simulator so
+    // every existing provider's behavior is unchanged.
     if (version_major < kVoodooInputVersionElCapitan) {
-        // On this OS the multitouch stack won't bind a virtual IOHIDDevice, so use the concrete terminal
-        // the provider advertises (by class name) instead of the simulator. The mux stays device-agnostic.
         OSString* cls = OSDynamicCast(OSString, provider->getProperty("VoodooInputLegacyTerminalClass"));
         if (cls) {
             OSObject* o = OSMetaClass::allocClassWithName(cls->getCStringNoCopy());
             legacyTerminal = OSDynamicCast(VoodooInputTerminal, o);
-            if (o && !legacyTerminal) o->release();   // advertised class wasn't a VoodooInputTerminal
+            if (o && !legacyTerminal) {   // advertised class wasn't a VoodooInputTerminal
+                IOLog("VoodooInput: advertised VoodooInputLegacyTerminalClass '%s' is not a VoodooInputTerminal\n", cls->getCStringNoCopy());
+                o->release();
+            }
             if (legacyTerminal && !legacyTerminal->start(this, provider)) {
+                IOLog("VoodooInput: legacy terminal '%s' failed to start\n", cls->getCStringNoCopy());
                 legacyTerminal->release(); legacyTerminal = 0;
             }
         }
-        if (!legacyTerminal) IOLog("VoodooInput: no legacy terminal (none advertised, or start failed); no cursor\n");
-        goto terminals_ready;
+        if (legacyTerminal) goto terminals_ready;   // provider supplied a working terminal; skip the simulator
     }
-#endif
 
     // Allocate the simulator and actuator devices
     simulator = OSTypeAlloc(VoodooInputSimulatorDevice);
     actuator = OSTypeAlloc(VoodooInputActuatorDevice);
     trackpoint = OSTypeAlloc(TrackpointDevice);
-
+    
     if (!simulator || !actuator || !trackpoint) {
         IOLog("VoodooInput could not alloc simulator, actuator or trackpoint!\n");
         OSSafeReleaseNULL(simulator);
@@ -69,7 +66,7 @@ bool VoodooInput::start(IOService *provider) {
         OSSafeReleaseNULL(trackpoint);
         return false;
     }
-
+    
     // Initialize simulator device
     if (!simulator->init(NULL) || !simulator->attach(this)) {
         IOLog("VoodooInput could not attach simulator!\n");
@@ -80,7 +77,7 @@ bool VoodooInput::start(IOService *provider) {
         simulator->detach(this);
         goto exit;
     }
-
+    
     // Initialize actuator device
     if (!actuator->init(NULL) || !actuator->attach(this)) {
         IOLog("VoodooInput could not init or attach actuator!\n");
@@ -91,7 +88,7 @@ bool VoodooInput::start(IOService *provider) {
         actuator->detach(this);
         goto exit;
     }
-
+    
     // Initialize trackpoint device
     if (!trackpoint->init(NULL) || !trackpoint->attach(this)) {
         IOLog("VoodooInput could not init or attach trackpoint!\n");
@@ -102,11 +99,8 @@ bool VoodooInput::start(IOService *provider) {
         trackpoint->detach(this);
         goto exit;
     }
-
-#ifdef MAVERICKS_TERMINAL
+    
 terminals_ready:
-#endif
-
     setProperty(VOODOO_INPUT_IDENTIFIER, kOSBooleanTrue);
     
     if (!parentProvider->open(this)) {
@@ -129,26 +123,26 @@ bool VoodooInput::willTerminate(IOService* provider, IOOptionBits options) {
 }
 
 void VoodooInput::stop(IOService *provider) {
-#ifdef MAVERICKS_TERMINAL
     if (legacyTerminal) { legacyTerminal->stop(this); OSSafeReleaseNULL(legacyTerminal); }
-#endif
+
     if (simulator) {
         simulator->stop(this);
         simulator->detach(this);
         OSSafeReleaseNULL(simulator);
     }
-
+    
     if (actuator) {
         actuator->stop(this);
         actuator->detach(this);
         OSSafeReleaseNULL(actuator);
     }
-
+    
     if (trackpoint) {
         trackpoint->stop(this);
         trackpoint->detach(this);
         OSSafeReleaseNULL(trackpoint);
     }
+    
     super::stop(provider);
 }
 
@@ -196,12 +190,10 @@ UInt32 VoodooInput::getLogicalMaxY() {
 IOReturn VoodooInput::message(UInt32 type, IOService *provider, void *argument) {
     switch (type) {
         case kIOMessageVoodooInputMessage:
-#ifdef MAVERICKS_TERMINAL
             if (provider == parentProvider && argument && legacyTerminal) {
                 legacyTerminal->handleEvent((const VoodooInputEvent*)argument);
                 break;
             }
-#endif
             if (provider == parentProvider && argument && simulator)
                 simulator->constructReport(*(VoodooInputEvent*)argument);
             break;
@@ -211,16 +203,14 @@ IOReturn VoodooInput::message(UInt32 type, IOService *provider, void *argument) 
                 const VoodooInputDimensions& dimensions = *(VoodooInputDimensions*)argument;
                 logicalMaxX = dimensions.max_x - dimensions.min_x;
                 logicalMaxY = dimensions.max_y - dimensions.min_y;
-#ifdef MAVERICKS_TERMINAL
                 if (legacyTerminal) legacyTerminal->updateDimensions(logicalMaxX, logicalMaxY);
-#endif
             }
             break;
             
         case kIOMessageVoodooInputUpdatePropertiesNotification:
             updateProperties();
             break;
-
+            
         case kIOMessageVoodooTrackpointRelativePointer: {
             if (trackpoint) {
                 const RelativePointerEvent& event = *(RelativePointerEvent*)argument;

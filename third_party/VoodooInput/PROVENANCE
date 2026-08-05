@@ -12,7 +12,12 @@ VoodooInput.cpp, VoodooInput.hpp, VoodooInputIDs.hpp
   source: acidanthera/VoodooInput @ d897813718c2ef9ad143b6a86240fe52dcb1693e
   fetched: 2026-07-21
   license: GPLv2 (compatible with ours)
-  local mods: MAVERICKS_TERMINAL build-macro seam (Task 2) — guarded so upstream's default build is byte-unaffected
+  local mods: the pre-El Capitan terminal seam — a `version_major < kVoodooInputVersionElCapitan` gate that
+    drives a provider-advertised generic VoodooInputTerminal (falling through to the simulator when none is
+    advertised). Compiled UNCONDITIONALLY (the former MAVERICKS_TERMINAL build macro was retired 2026-08-05).
+    These three files are now byte-identical to the upstream contribution branch `voodooinput-legacy-terminal`
+    (rooted on this same SHA) — that branch, not a `unifdef` of this file, is the canonical pristine-relative
+    diff. IOLog reaches VoodooInput.cpp via a -include <IOKit/IOLib.h> compile flag (see kext-gesture/CMakeLists.txt).
 
 VoodooInputSimulator/VoodooInput{Simulator,Actuator}Device.{cpp,hpp}, Trackpoint/TrackpointDevice.{cpp,hpp},
 VoodooInputMultitouch/MultitouchHelpers.h

@@ -13,9 +13,7 @@
 class VoodooInputSimulatorDevice;
 class VoodooInputActuatorDevice;
 class TrackpointDevice;
-#ifdef MAVERICKS_TERMINAL
 class VoodooInputTerminal;
-#endif
 
 #ifndef EXPORT
 #define EXPORT __attribute__((visibility("default")))
@@ -29,9 +27,7 @@ class EXPORT VoodooInput : public IOService {
     VoodooInputSimulatorDevice* simulator;
     VoodooInputActuatorDevice* actuator;
     TrackpointDevice* trackpoint;
-#ifdef MAVERICKS_TERMINAL
     VoodooInputTerminal* legacyTerminal;
-#endif
     
     UInt8 transformKey;
     
@@ -55,7 +51,6 @@ public:
     bool updateProperties();
 
     IOReturn message(UInt32 type, IOService *provider, void *argument) override;
-
 };
 
 #endif
