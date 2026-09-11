@@ -16,7 +16,7 @@ set(CMAKE_OSX_ARCHITECTURES "x86_64" CACHE STRING "Target architectures")
 # CI all derive from MAVERICKS_VERSION (CI reads it via scripts/derive-upstream-version.sh).
 # To release: bump it here, commit docs/release-notes/v<MAVERICKS_VERSION>.md, push main,
 # and dispatch release.yml with release=true -- CI mints the v<MAVERICKS_VERSION> tag itself.
-set(MAVERICKS_VERSION "0.5.2")
+set(MAVERICKS_VERSION "0.5.3")
 string(REGEX MATCH "^[0-9]+\\.[0-9]+\\.[0-9]+" MAVERICKS_VERSION_NUMERIC "${MAVERICKS_VERSION}")
 project(mt2 VERSION ${MAVERICKS_VERSION_NUMERIC} LANGUAGES C CXX)
 
