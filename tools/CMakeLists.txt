@@ -97,13 +97,24 @@ add_custom_target(linkstate-uninstall
 # is no MT2_SPARKLE_FRAMEWORK gate/path anymore. Built UNCONDITIONALLY, like the sibling projects (the
 # one-time Sparkle fetch is cached). The updater host lives in mavericks-shipyard (templated
 # main.m/Info.plist); we configure it per product here.
+#
+# ED_PUBKEY is the ModernMavericks ORG signing key (/XQ+...), which the whole family is moving to, in
+# place of this repo's own key (E8ZT...) that every release through v0.5.2 shipped. The first release
+# carrying it is a BRIDGE, and the order matters:
+#   1. Sign it with the CURRENT repo secret SPARKLE_PRIVATE_KEY -- the E8ZT key, which the updaters
+#      already installed trust. sign_and_appcast.sh's assert_update_trusted.sh checks exactly that
+#      (against the live release's updater) and notes that the next release must use the new key.
+#   2. Only after it is published, move the repo into the ModernMavericks org and delete the
+#      repo-level secret, so the org-level SPARKLE_PRIVATE_KEY (the /XQ+ private half) signs from then
+#      on. Signing the bridge with the org key instead would sign it with a key no installed updater
+#      trusts yet, and the trust check would refuse to write the appcast.
 include(MavericksSparkle)
 mavericks_add_updater_app(
   NAME Trackpad2Updater
   PRODUCT_NAME "Mavericks Trackpad 2"
   BUNDLE_ID dev.modernmavericks.Trackpad2Updater
   FEED_URL "https://github.com/schmonz/mavericks-magic-trackpad2/releases/latest/download/appcast.xml"
-  ED_PUBKEY "E8ZTStxLUfSWtTDg24bwnanLII20R27NVm+RxZtElGs="
+  ED_PUBKEY "/XQ+fNmP4nxdj9jnKmJDwL8rnsKYz6Kg5X61REAIqkI="   # ModernMavericks org key; see the bridge note above
   ICON "${CMAKE_CURRENT_SOURCE_DIR}/voodooinputmavericks_updater/Trackpad2Updater.icns"
   VERSION "${MAVERICKS_VERSION}"
   AUTO_CHECK false
