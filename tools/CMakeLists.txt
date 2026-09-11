@@ -95,7 +95,7 @@ add_custom_target(linkstate-uninstall
 # ---- Trackpad2Updater.app (shared MavericksSparkle) --------------------------------------
 # mavericks_add_updater_app() self-fetches the Sparkle framework (cached under ~/Library/Caches), so there
 # is no MT2_SPARKLE_FRAMEWORK gate/path anymore. Built UNCONDITIONALLY, like the sibling projects (the
-# one-time Sparkle fetch is cached). The updater host lives in mavericks-shared-cmake (templated
+# one-time Sparkle fetch is cached). The updater host lives in mavericks-shipyard (templated
 # main.m/Info.plist); we configure it per product here.
 include(MavericksSparkle)
 mavericks_add_updater_app(
@@ -122,6 +122,7 @@ add_custom_target(updater-install
   COMMENT "Installing Trackpad2Updater.app")
 add_dependencies(updater-install Trackpad2Updater)
 
-# NB (shared-cmake refactor): the EdDSA signer is no longer built by this project. Signing moved to the
-# shared scripts/sign_and_appcast.sh (prebuilt ed25519-sign), invoked from release.yml. (Was: an
+# NB (shared-cmake refactor, before the package became mavericks-shipyard): the EdDSA signer is no
+# longer built by this project. Signing moved to shipyard's scripts/sign_and_appcast.sh (prebuilt
+# ed25519-sign), invoked from release.yml. (Was: an
 # MT2_ED25519_SRC-gated mavericks_add_signer building mavericks_sign_update + mavericks_generate_keys.)

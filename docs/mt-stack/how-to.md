@@ -162,7 +162,8 @@ below in `CREDITS.md` if they materially help the build.
 clang -isysroot <path>/MacOSX10.9.sdk -mmacosx-version-min=10.9 ...   # standard old-target cross-build
 ```
 
-The **userland** cross-build is already PROVEN via the shared-CMake `dimmit` adopter. An old SDK alone
+The **userland** cross-build is already PROVEN via the `dimmit` adopter of the shared CMake package (then
+mavericks-shared-cmake, now mavericks-shipyard). An old SDK alone
 does NOT settle the KEXT side (a kext links against kernel headers, must LOAD on 10.9). Note: this box
 (the MacPro6,1) is the 10.9-native build host (`clang-600.0.57`, `darwin13.4.0`), so the modern-toolchain
 spike CANNOT run here — it needs a macOS-26 host. Old `clang-600` does not grok the blog's

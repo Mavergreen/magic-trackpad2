@@ -23,29 +23,30 @@ project(mt2 VERSION ${MAVERICKS_VERSION_NUMERIC} LANGUAGES C CXX)
 # to 11.0 and emits a binary that can't run on Mavericks), the AppleClang gate
 # (reject gcc / Homebrew / pkgsrc clang picked up by an IDE — both build hosts use
 # Apple's clang, differing only in Xcode version), native-vs-cross mode detection,
-# and the 10.9 compat helpers. Install the mavericks-shared-cmake package once
-# (`cmake --install`, which self-registers in the user package registry); then it
-# is found with no CMAKE_PREFIX_PATH. See github.com/schmonz/mavericks-shared-cmake.
+# and the 10.9 compat helpers. Install the mavericks-shipyard package once
+# (`cmake --install`, which self-registers in the user package registry; CI uses
+# its install@v1 action); then it is found with no CMAKE_PREFIX_PATH. See
+# github.com/ModernMavericks/shipyard (formerly mavericks-shared-cmake).
 # Must come after project() so CMAKE_<LANG>_COMPILER_ID is populated for the gate.
-find_package(MavericksSharedCMake REQUIRED)
+find_package(MavericksShipyard REQUIRED)
 set(MAVERICKS_REQUIRE_LANGS C CXX)   # the kext (C++/IOKit) + userland (C) both must be AppleClang
 set(MAVERICKS_REQUIRE_BLOCKS ON)     # the injected osax uses Apple blocks (dispatch handlers)
 include(Mavericks)
 
 # Post-10.9 IOKit renames that must never leak on a modern cross-build:
 # _IORegistryEntryCopyPath (10.11), _IOMainPort / _kIOMainPortDefault (12.0, the renamed
-# IOMasterPort). mavericks_compat_guard() forwards this to the guard for every shipped
+# IOMasterPort). mavericks_assert_binary_compatible() forwards this to the guard for every shipped
 # userland target (see tools/CMakeLists.txt). Must be set before add_subdirectory(tools).
 set(MAVERICKS_POST_10_9_SYMBOLS "_IORegistryEntryCopyPath|_IOMainPort|_kIOMainPortDefault")
 
 # Absolute path to a MacOSX10.9 SDK root, used ONLY to cross-build the kext from a
 # modern host (the kext needs 10.9 kernel headers + libkmod, which the modern SDK
-# does not provide). Fetch it with the shared fetch_10_9_sdk.sh (or the
-# mavericks_fetch_10_9_sdk() helper). Leave UNSET on the native 10.9 dev box --
+# does not provide). Fetch it with shipyard's fetch_sdk.sh (or the
+# mavericks_fetch_sdk() helper). Leave UNSET on the native 10.9 dev box --
 # the kext then falls back to CMAKE_OSX_SYSROOT (unchanged).
 set(MT2_MACOSX_10_9_SDK "" CACHE PATH "MacOSX10.9 SDK root for kext cross-build (modern host only)")
 # (Sparkle framework + ed25519 signer are no longer project inputs: mavericks_add_updater_app self-fetches
-# Sparkle, and signing moved to the shared scripts/sign_and_appcast.sh. See tools/CMakeLists.txt.)
+# Sparkle, and signing moved to shipyard's scripts/sign_and_appcast.sh. See tools/CMakeLists.txt.)
 set(CMAKE_C_STANDARD 99)
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/sbin")

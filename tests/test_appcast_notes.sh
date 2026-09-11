@@ -1,13 +1,24 @@
 #!/bin/sh
-# Asserts the shared gen_appcast.sh (mavericks-shared-cmake) renders our Markdown release notes to the
-# expected HTML fragment (Sparkle shows <description> in a WebView; raw Markdown collapses to one blob).
+# Asserts shipyard's gen_appcast.sh renders our Markdown release notes to the expected HTML fragment
+# (Sparkle shows <description> in a WebView; raw Markdown collapses to one blob).
+#
+#   test_appcast_notes.sh [SHIPYARD_SCRIPTS_DIR]
+#
+# ctest passes ${MavericksShipyard_SCRIPTS} (the configure already required shipyard). Run by hand, it
+# falls back to $SHIPYARD_SCRIPTS (exported by shipyard's install@v1) and then the CMake user package
+# registry. Not finding shipyard is a SKIP (77, ctest's SKIP_RETURN_CODE), never a pass: this used to
+# look under the pre-rename MavericksSharedCMake registry entry and exit 0 on a miss, so once the
+# package became MavericksShipyard it "passed" without rendering anything.
 set -e
 here=$(dirname "$0")
 root=$(cd "$here/.." && pwd)
-# gen_appcast.sh now lives in mavericks-shared-cmake (located via the find_package user registry).
-_msc=$(cat "$HOME/.cmake/packages/MavericksSharedCMake/"* 2>/dev/null | head -1)
-gen="$_msc/scripts/gen_appcast.sh"
-[ -f "$gen" ] || { echo "SKIP: mavericks-shared-cmake not installed ($gen)"; exit 0; }
+scripts="${1:-${SHIPYARD_SCRIPTS:-}}"
+if [ -z "$scripts" ]; then
+  _reg=$(cat "$HOME/.cmake/packages/MavericksShipyard/"* 2>/dev/null | head -1)
+  [ -z "$_reg" ] || scripts="$_reg/scripts"
+fi
+gen="$scripts/gen_appcast.sh"
+[ -f "$gen" ] || { echo "SKIP: mavericks-shipyard not installed (no gen_appcast.sh at '$gen')"; exit 77; }
 
 tmp="${TMPDIR:-/tmp}/mt2-appcast-notes.$$"
 mkdir -p "$tmp"

@@ -11,7 +11,7 @@ build/
 # CMake out-of-tree build dir (Task 1+; kept separate from the Makefile's build/)
 cmake-build/
 cmake-build-debug/
-# CMakePresets native/cross build dirs (mavericks-shared-cmake convention)
+# CMakePresets native/cross build dirs (mavericks-shipyard convention)
 build-native/
 build-cross/
 kext-gesture/MavericksVoodooInputHost.kext/

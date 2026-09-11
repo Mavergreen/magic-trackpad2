@@ -14,7 +14,7 @@ set(PKG_OUT ${CMAKE_BINARY_DIR}/voodooinputmavericks-${MAVERICKS_PKG_VERSION}.pk
 # rather than writing generated files back into the checkout.
 set(PKG_SCRIPTS ${CMAKE_BINARY_DIR}/pkg-scripts)
 # Updater app + its update-check LaunchAgent + the agent-load snippet our postinstall sources: all
-# staged by mavericks-shared-cmake, so this product renders the same plist and runs the same load
+# staged by mavericks-shipyard, so this product renders the same plist and runs the same load
 # logic as every sibling. Only in a Sparkle build -- a build with no updater must also ship no agent,
 # or login gets an agent pointing at an app that was never installed.
 # The updater app + its update-check LaunchAgent + the agent-load.sh snippet the postinstall sources, all
@@ -25,7 +25,7 @@ set(PKG_SCRIPTS ${CMAKE_BINARY_DIR}/pkg-scripts)
 # update-check agent. That is why 0.5.0's "Check for Updates" did nothing. check_pkg_payload.sh (run at the
 # end of this target) now fails the build if the updater app is ever absent from the payload again.
 set(_UPD_PKG_STAGE
-  COMMAND sh ${MavericksSharedCMake_SCRIPTS}/stage_updater.sh
+  COMMAND sh ${MavericksShipyard_SCRIPTS}/stage_updater.sh
     --stage ${PKGROOT}
     --app ${CMAKE_BINARY_DIR}/Trackpad2Updater.app
     --app-dir "/Library/Application Support/ModernMavericks"
@@ -81,8 +81,8 @@ add_custom_target(pkg
   #     the payload relocated onto it, ignoring the declared install path.
   # This used to be a local pkgbuild --analyze + cmake/pkg_no_version_check.sh (version-check only);
   # the shared helper covers BOTH footguns for the whole family. See
-  # mavericks-shared-cmake/scripts/build_component_pkg.sh.
-  COMMAND sh ${MavericksSharedCMake_SCRIPTS}/build_component_pkg.sh
+  # mavericks-shipyard/scripts/build_component_pkg.sh.
+  COMMAND sh ${MavericksShipyard_SCRIPTS}/build_component_pkg.sh
           --root ${PKGROOT} --scripts ${PKG_SCRIPTS}
           --identifier dev.modernmavericks.voodooinputmavericks --version ${MAVERICKS_PKG_VERSION}
           --install-location / --out ${CMAKE_BINARY_DIR}/voodooinputmavericks-component.pkg
@@ -96,7 +96,7 @@ add_custom_target(pkg
   COMMAND sh ${CMAKE_SOURCE_DIR}/cmake/check_pkg_payload.sh ${PKG_OUT}
   # Install-in-place gate: every bundle must land at its declared path and always overwrite (no
   # relocation, no version-skip). Runs on the real pkg, guarding local `pkg` AND the CI release build.
-  COMMAND sh ${MavericksSharedCMake_SCRIPTS}/assert_pkg_installs_in_place.sh ${PKG_OUT}
+  COMMAND sh ${MavericksShipyard_SCRIPTS}/assert_pkg_installs_in_place.sh ${PKG_OUT}
   DEPENDS kext mt2_reenumerate VoodooInputMavericksPane_simbl mt2_linkstated ${_UPD_PKG_DEP}
   COMMENT "Building ${PKG_OUT} (productbuild, 10.9.5 floor)")
 

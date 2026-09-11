@@ -6,8 +6,8 @@ name: release
 #
 # AUTHENTICITY / CORRECTNESS of the cross-built kext rests on two things, no old
 # Xcode required:
-#   1. the SDK is pinned by SHA-256 in the shared fetch_10_9_sdk.sh (integrity;
-#      from ModernMavericks/shared-cmake, consumed at @v1), and
+#   1. the SDK is pinned by SHA-256 in shipyard's fetch_sdk.sh (integrity;
+#      from ModernMavericks/shipyard, consumed at @v1), and
 #   2. the equivalence gate (cmake/characterize_build.sh compare) proves the
 #      cross-built kext is identical -- in undefined+defined external symbol sets,
 #      KPI deps, and arch -- to the trusted native 10.9.5 build committed in
@@ -34,22 +34,26 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      # shared-cmake installs itself via its own action (HTTPS via the runner token). It self-registers
-      # in the per-user CMake package registry (no CMAKE_PREFIX_PATH downstream), and the install prefix
-      # holds the shared scripts/ used by the SDK-fetch step. @v1 like every sibling: the versioned
-      # action IS the pin, and breaking changes to the shared surface come with a major bump.
-      - name: Install shared-cmake
-        uses: ModernMavericks/shared-cmake/.github/actions/install@v1
+      # shipyard installs itself via its own action. It self-registers in the per-user CMake package
+      # registry (find_package(MavericksShipyard), no CMAKE_PREFIX_PATH downstream) and exports
+      # $SHIPYARD_SCRIPTS, the installed scripts dir every later step uses -- never a hard-coded
+      # $HOME/.local/share/cmake/<package>/scripts path, which is exactly what broke when the package
+      # was renamed from MavericksSharedCMake. @v1 like every sibling: Renovate's github-actions
+      # manager tracks the moving major tag.
+      - name: Install mavericks-shipyard
+        uses: ModernMavericks/shipyard/.github/actions/install@v1
 
-      # What @v1 resolves to TODAY, for the SDK cache key below. The SDK's URL and its pinned SHA-256
-      # live in shared-cmake's fetch script, so the cached SDK must be invalidated whenever the shared
-      # machinery moves. Keying on the tag NAME would never change and could serve a stale SDK forever.
-      - name: Resolve shared-cmake @v1
-        id: msc
+      # The SDK cache key is the content of the script that pins the SDK: its URL, its SHA-256 and the
+      # extract-time stub conversion all live in fetch_sdk.sh, so a change to any of them invalidates
+      # the cache, and nothing else does. (Keying on what @v1 resolves to would miss nothing either,
+      # but shipyard cuts a release on every push to its main, so that key would rarely hit.)
+      - name: Key the SDK cache on shipyard's SDK pin
+        id: sdkkey
         run: |
-          sha=$(git ls-remote https://github.com/ModernMavericks/shared-cmake refs/tags/v1 | head -1 | cut -f1)
-          [ -n "$sha" ] || { echo "::error::could not resolve shared-cmake v1"; exit 1; }
-          echo "sha=$sha" >> "$GITHUB_OUTPUT"
+          set -eu
+          [ -f "$SHIPYARD_SCRIPTS/fetch_sdk.sh" ] || { echo "::error::no fetch_sdk.sh under SHIPYARD_SCRIPTS='$SHIPYARD_SCRIPTS' (install@v1 exports it)"; exit 1; }
+          sum="$(shasum -a 256 "$SHIPYARD_SCRIPTS/fetch_sdk.sh" | cut -d' ' -f1)"
+          echo "sum=$sum" >> "$GITHUB_OUTPUT"
 
       - name: Determine version (from CMake MAVERICKS_VERSION — single source of truth)
         id: ver
@@ -75,21 +79,29 @@ jobs:
         run: softwareupdate --install-rosetta --agree-to-license || true
 
       # Persist the fetched SDK across runs so releases don't depend on the phracker
-      # archive being up every time. Keyed on the commit @v1 resolves to, so bumping the shared
-      # machinery (which is how the SDK pin would change) auto-invalidates the cache.
+      # archive being up every time. Keyed on fetch_sdk.sh's content (step above), so a change to the
+      # SDK pin auto-invalidates the cache.
       - name: Cache the MacOSX10.9 SDK
         uses: actions/cache@v6
         with:
           path: ${{ github.workspace }}/.mt2-sdk-cache
-          key: macosx10.9-sdk-${{ steps.msc.outputs.sha }}
+          key: macosx10.9-sdk-${{ steps.sdkkey.outputs.sum }}
 
       - name: Fetch + checksum-verify the MacOSX10.9 SDK
         id: sdk
         env:
           MAVERICKS_SDK_CACHE: ${{ github.workspace }}/.mt2-sdk-cache
-        run: echo "path=$(sh "$HOME/.local/share/cmake/MavericksSharedCMake/scripts/fetch_sdk.sh")" >> "$GITHUB_OUTPUT"
+        # Two statements, not echo "path=$(...)": inside an argument, a failing command substitution is
+        # invisible -- echo succeeds, the step goes green with path= empty, and the failure surfaces
+        # later as a confusing configure/kext error. That is how this step hid the package rename.
+        run: |
+          set -eu
+          sdk="$(sh "$SHIPYARD_SCRIPTS/fetch_sdk.sh")" \
+            || { echo "::error::fetch_sdk.sh failed (see above) -- no MacOSX10.9 SDK to cross-build the kext"; exit 1; }
+          [ -d "$sdk/usr/lib" ] || { echo "::error::fetch_sdk.sh printed '$sdk', which is not an SDK root"; exit 1; }
+          echo "path=$sdk" >> "$GITHUB_OUTPUT"
 
-      # NB (shared-cmake refactor): Sparkle + ed25519 are no longer fetched here. mavericks_add_updater_app()
+      # NB (shared-cmake refactor, now shipyard): Sparkle + ed25519 are no longer fetched here. mavericks_add_updater_app()
       # self-fetches the Sparkle framework at configure time (cached under ~/Library/Caches), and the release
       # signing step below uses scripts/sign_and_appcast.sh, which fetches the prebuilt ed25519-sign via gh.
       # Only the 10.9 SDK (for the kext cross-build) still needs an explicit fetch + -D pass.
@@ -127,10 +139,11 @@ jobs:
           PKG="build/voodooinputmavericks-$VER.pkg"
           [ -n "$SPARKLE_PRIVATE_KEY" ] || { echo "::error::SPARKLE_PRIVATE_KEY secret not set"; exit 1; }
           URL="https://github.com/${GITHUB_REPOSITORY}/releases/download/${GITHUB_REF_NAME}/voodooinputmavericks-$VER.pkg"
-          # Shared signer (scripts/sign_and_appcast.sh): reads the key from $SPARKLE_PRIVATE_KEY (never
+          # shipyard's signer (scripts/sign_and_appcast.sh): reads the key from $SPARKLE_PRIVATE_KEY (never
           # argv), fetches the prebuilt ed25519-sign, self-checks the signature against the pubkey so a
           # bad key fails HERE not on the client, and inlines docs/release-notes/vVER.md as <description>.
-          sh "$HOME/.local/share/cmake/MavericksSharedCMake/scripts/sign_and_appcast.sh" \
+          [ -f "$SHIPYARD_SCRIPTS/sign_and_appcast.sh" ] || { echo "::error::no sign_and_appcast.sh under SHIPYARD_SCRIPTS='$SHIPYARD_SCRIPTS'"; exit 1; }
+          sh "$SHIPYARD_SCRIPTS/sign_and_appcast.sh" \
             --channel-title "Mavericks Trackpad 2" --version "$VER" --pkg-url "$URL" \
             --notes-file "docs/release-notes/v$VER.md" --pkg "$PKG" --min-os 10.9.5 > build/appcast.xml
           echo "=== appcast.xml ==="; cat build/appcast.xml

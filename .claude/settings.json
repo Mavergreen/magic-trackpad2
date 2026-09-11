@@ -1,7 +1,7 @@
 {
   "extraKnownMarketplaces": {
     "modernmavericks": {
-      "source": { "source": "github", "repo": "ModernMavericks/shared-cmake" }
+      "source": { "source": "github", "repo": "ModernMavericks/shipyard" }
     }
   },
   "enabledPlugins": {
