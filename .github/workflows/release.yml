@@ -135,13 +135,20 @@ jobs:
           SPARKLE_PRIVATE_KEY: ${{ secrets.SPARKLE_PRIVATE_KEY }}
           GH_TOKEN: ${{ github.token }}   # sign_and_appcast.sh fetches the prebuilt ed25519-sign via gh
         run: |
+          set -eu
           VER="${{ steps.ver.outputs.version }}"
           PKG="build/voodooinputmavericks-$VER.pkg"
-          [ -n "$SPARKLE_PRIVATE_KEY" ] || { echo "::error::SPARKLE_PRIVATE_KEY secret not set"; exit 1; }
+          # printenv, not [ -n "$SPARKLE_PRIVATE_KEY" ]: the shell never expands the key, so no trace
+          # (set -x, a debug re-run) can print it. grep -q . fails on unset and empty alike.
+          printenv SPARKLE_PRIVATE_KEY | grep -q . || { echo "::error::SPARKLE_PRIVATE_KEY secret not set"; exit 1; }
           URL="https://github.com/${GITHUB_REPOSITORY}/releases/download/${GITHUB_REF_NAME}/voodooinputmavericks-$VER.pkg"
-          # shipyard's signer (scripts/sign_and_appcast.sh): reads the key from $SPARKLE_PRIVATE_KEY (never
-          # argv), fetches the prebuilt ed25519-sign, self-checks the signature against the pubkey so a
-          # bad key fails HERE not on the client, and inlines docs/release-notes/vVER.md as <description>.
+          # shipyard's signer (scripts/sign_and_appcast.sh) fetches the prebuilt ed25519-sign and hands it
+          # the key on STDIN, via `printenv SPARKLE_PRIVATE_KEY | ed25519-sign -f - PKG` inside the
+          # script: this step never expands the key into a command line or a trace. It then runs
+          # assert_update_trusted.sh, which verifies the signature against the SUPublicEDKey of the
+          # updater ALREADY INSTALLED -- read from the live release's pkg via the live appcast, not from
+          # this repo -- so a key installed clients would reject fails HERE, not on users' machines, and
+          # no appcast is written. docs/release-notes/vVER.md is inlined as the appcast <description>.
           [ -f "$SHIPYARD_SCRIPTS/sign_and_appcast.sh" ] || { echo "::error::no sign_and_appcast.sh under SHIPYARD_SCRIPTS='$SHIPYARD_SCRIPTS'"; exit 1; }
           sh "$SHIPYARD_SCRIPTS/sign_and_appcast.sh" \
             --channel-title "Mavericks Trackpad 2" --version "$VER" --pkg-url "$URL" \
