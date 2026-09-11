@@ -1,0 +1,15 @@
+name: conventions
+
+# The family conventions gate (concurrency declared, tests actually run, INGREDIENTS.md present, no
+# Renovate key restating the preset, a release that publishes notes). Three lines on purpose: the
+# checks live in shipyard, so adding one never touches this file.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  conventions:
+    uses: ModernMavericks/shipyard/.github/workflows/family-conventions.yml@v1
