@@ -108,12 +108,15 @@ add_custom_target(linkstate-uninstall
 #      repo-level secret, so the org-level SPARKLE_PRIVATE_KEY (the /XQ+ private half) signs from then
 #      on. Signing the bridge with the org key instead would sign it with a key no installed updater
 #      trusts yet, and the trust check would refuse to write the appcast.
+# Done: v0.5.3 was the bridge, and the repo is now ModernMavericks/magic-trackpad2. FEED_URL follows
+# it there; updaters installed from schmonz/mavericks-magic-trackpad2 reach the same feed through
+# GitHub's redirect until they update to a release carrying this URL.
 include(MavericksSparkle)
 mavericks_add_updater_app(
   NAME Trackpad2Updater
   PRODUCT_NAME "Mavericks Trackpad 2"
   BUNDLE_ID dev.modernmavericks.Trackpad2Updater
-  FEED_URL "https://github.com/schmonz/mavericks-magic-trackpad2/releases/latest/download/appcast.xml"
+  FEED_URL "https://github.com/ModernMavericks/magic-trackpad2/releases/latest/download/appcast.xml"
   ED_PUBKEY "/XQ+fNmP4nxdj9jnKmJDwL8rnsKYz6Kg5X61REAIqkI="   # ModernMavericks org key; see the bridge note above
   ICON "${CMAKE_CURRENT_SOURCE_DIR}/voodooinputmavericks_updater/Trackpad2Updater.icns"
   VERSION "${MAVERICKS_VERSION}"
