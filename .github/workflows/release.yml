@@ -2,7 +2,24 @@ name: release
 
 # One automated build on the latest macOS: cross-build the whole 10.9 product
 # (x86_64 @ 10.9 userland + a real VoodooInputMavericks.kext built against a fetched
-# MacOSX10.9 SDK), gate it, package it, and publish a GitHub Release on v* tags.
+# MacOSX10.9 SDK), gate it, package it, and -- only when asked -- publish it.
+#
+# RELEASE MODEL: deliberate publish (the family's "publishes only from a tag or a
+# dispatch" column, minus the tag). Entry points:
+#   - pull_request to main : build + gate. The status check Renovate automerge waits on.
+#   - push to main         : build + gate, never a release.
+#   - workflow_dispatch    : with release=true, from main, publish v<MAVERICKS_VERSION>;
+#                            without it, build an artifact only.
+# The version is this repo's own semver, hand-bumped as MAVERICKS_VERSION in CMakeLists.txt
+# (scripts/derive-upstream-version.sh reads it); the tag is v<that>, as for every release
+# since v0.1.0. So cutting a release is: bump MAVERICKS_VERSION, commit
+# docs/release-notes/v<version>.md, push main, dispatch with release=true.
+#
+# There is no tag trigger any more. shipyard's publish-release.yml mints the tag itself at
+# the dispatched commit, and refuses a tag that already exists (two runs racing one
+# version must rebuild, never relabel). A hand-pushed v* tag therefore cannot publish
+# anything -- it would only make the dispatch for that version refuse -- so
+# .githooks/pre-push refuses to push one.
 #
 # AUTHENTICITY / CORRECTNESS of the cross-built kext rests on two things, no old
 # Xcode required:
@@ -15,22 +32,49 @@ name: release
 #      fails this gate.
 #
 # RELEASE INVARIANT: the single `publish` job is the ONLY thing that writes to
-# GitHub Releases and it `needs` the build job, so any build/gate failure skips
-# publishing entirely -- never a partial release.
+# GitHub Releases, and it `needs` both the build job and the signing-key scan, so any
+# build/gate/scan failure skips publishing entirely -- never a partial release.
 
 on:
   push:
-    tags: ['v*']
+    branches: [main]          # build + gate every change that lands; never publishes
   pull_request:
     branches: [main]          # PR build is the status check Renovate automerge waits on
-  workflow_dispatch:        # manual runs produce an artifact, not a release
+  workflow_dispatch:
+    inputs:
+      release:
+        # Not the family's local_release: that cuts a -mavericks.(N+1) repackage of someone else's
+        # upstream. This repo is its own upstream with no -mavericks axis, so a dispatch publishes
+        # exactly the committed MAVERICKS_VERSION, or nothing.
+        description: "Publish v<MAVERICKS_VERSION> from main (off: build an artifact only)"
+        type: boolean
+        default: false
 
+# Least privilege by default; only the publish job may write (to Releases).
 permissions:
-  contents: write
+  contents: read
+
+# Only a pull_request supersedes -- keyed per ref, so a force-push replaces its own predecessor.
+# Everything else (a branch push, a workflow_dispatch) is keyed per RUN and is therefore alone in its
+# group: never queued, never evicted, never cancelled. cancel-in-progress:false would not have been
+# the protection it looks like: it protects the RUNNING job and not the QUEUED one -- GitHub keeps
+# only the newest pending run per group and cancels the rest -- so a shared group silently discards
+# a queued release (mavericks-golang lost one on 2026-09-09). Two dispatches of one version can now
+# both build; publish-release.yml refuses the loser by name.
+concurrency:
+  group: >-
+    release-${{ github.event_name == 'pull_request'
+                && github.ref || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   build-macos:
     runs-on: macos-26
+    permissions:
+      contents: read
+    outputs:
+      tag: ${{ steps.ver.outputs.tag }}
+      publish: ${{ steps.ver.outputs.publish }}
     steps:
       - uses: actions/checkout@v7
 
@@ -55,25 +99,53 @@ jobs:
           sum="$(shasum -a 256 "$SHIPYARD_SCRIPTS/fetch_sdk.sh" | cut -d' ' -f1)"
           echo "sum=$sum" >> "$GITHUB_OUTPUT"
 
-      - name: Determine version (from CMake MAVERICKS_VERSION — single source of truth)
+      # Decide the whole release plan ONCE, before the long build: the version (MAVERICKS_VERSION, the
+      # single source of truth the pkg name, pkgbuild --version and the updater's CFBundleVersion all
+      # derive from), its tag, and whether this run publishes. Only a release=true dispatch from main
+      # publishes; everything that would make publish-release.yml refuse later is refused HERE, with
+      # the fix named, instead of after twenty minutes of building.
+      - name: Determine version + release plan (from CMake MAVERICKS_VERSION)
         id: ver
+        env:
+          RELEASE_INPUT: ${{ github.event_name == 'workflow_dispatch' && inputs.release }}
         run: |
-          VER=$(grep -m1 'set(MAVERICKS_VERSION' CMakeLists.txt | sed -E 's/.*"([^"]+)".*/\1/')
-          [ -n "$VER" ] || { echo "::error::could not read MAVERICKS_VERSION from CMakeLists.txt"; exit 1; }
-          echo "version=$VER" >> "$GITHUB_OUTPUT"
-          # On a tag build, enforce that the tag matches the CMake version so the
-          # release name and the pkg version can never drift.
-          if [ "${GITHUB_REF_TYPE}" = "tag" ] && [ "${GITHUB_REF_NAME}" != "v$VER" ]; then
-            echo "::error::tag ${GITHUB_REF_NAME} != v$VER (CMakeLists MAVERICKS_VERSION); keep them in sync"
-            exit 1
+          set -eu
+          VER="$(sh scripts/derive-upstream-version.sh)"
+          TAG="v$VER"
+          publish=false
+          if [ "$RELEASE_INPUT" = true ]; then
+            [ "$GITHUB_REF" = refs/heads/main ] \
+              || { echo "::error::a release is cut from main only; this dispatch ran on $GITHUB_REF"; exit 1; }
+            # publish-release.yml has no prerelease flag, so a suffixed version would become
+            # /releases/latest/ -- the updater's SUFeedURL -- and be offered to every installed client.
+            case "$VER" in *-*)
+              echo "::error::$VER carries a pre-release suffix; publishing it would make it the release every installed updater is offered"
+              exit 1 ;;
+            esac
+            # The same three-way answer publish-release.yml uses: 0 = taken, 2 = free, else unknown.
+            set +e
+            git ls-remote --exit-code --tags origin "refs/tags/$TAG" >/dev/null 2>&1
+            rc=$?
+            set -e
+            case "$rc" in
+              0) echo "::error::$TAG is already released. Bump MAVERICKS_VERSION in CMakeLists.txt, add docs/release-notes/v<new>.md, push main, and dispatch again."
+                 exit 1 ;;
+              2) echo "$TAG is free" ;;
+              *) echo "::error::could not read tags from origin (git ls-remote exit $rc); refusing to build a release blind"
+                 exit 1 ;;
+            esac
+            # Release-notes gate: the notes become the appcast <description> the updater shows AND the
+            # GitHub Release body; publish-release.yml fails an empty body, so fail it here first.
+            [ -s "docs/release-notes/$TAG.md" ] \
+              || { echo "::error::missing/empty docs/release-notes/$TAG.md (author the release notes first)"; exit 1; }
+            publish=true
           fi
-          # Release-notes gate: a tagged release MUST ship non-empty notes -- they become the appcast
-          # <description> the updater shows. Fail fast here, before the long build (also enforced locally
-          # by .githooks/pre-push).
-          if [ "${GITHUB_REF_TYPE}" = "tag" ] && [ ! -s "docs/release-notes/v$VER.md" ]; then
-            echo "::error::missing/empty docs/release-notes/v$VER.md (author the release notes for the tag)"
-            exit 1
-          fi
+          {
+            echo "version=$VER"
+            echo "tag=$TAG"
+            echo "publish=$publish"
+          } >> "$GITHUB_OUTPUT"
+          echo "version=$VER tag=$TAG publish=$publish"
 
       - name: Ensure Rosetta (x86_64 @ 10.9 tests run under it)
         run: softwareupdate --install-rosetta --agree-to-license || true
@@ -130,68 +202,81 @@ jobs:
           grep -o 'os-version min="[0-9.]*"' /tmp/pkgx/Distribution
 
       - name: Sign the .pkg + generate the Sparkle appcast
-        if: github.ref_type == 'tag'
+        if: steps.ver.outputs.publish == 'true'
         env:
           SPARKLE_PRIVATE_KEY: ${{ secrets.SPARKLE_PRIVATE_KEY }}
           GH_TOKEN: ${{ github.token }}   # sign_and_appcast.sh fetches the prebuilt ed25519-sign via gh
         run: |
           set -eu
           VER="${{ steps.ver.outputs.version }}"
+          TAG="${{ steps.ver.outputs.tag }}"
           PKG="build/voodooinputmavericks-$VER.pkg"
           # printenv, not [ -n "$SPARKLE_PRIVATE_KEY" ]: the shell never expands the key, so no trace
           # (set -x, a debug re-run) can print it. grep -q . fails on unset and empty alike.
           printenv SPARKLE_PRIVATE_KEY | grep -q . || { echo "::error::SPARKLE_PRIVATE_KEY secret not set"; exit 1; }
-          URL="https://github.com/${GITHUB_REPOSITORY}/releases/download/${GITHUB_REF_NAME}/voodooinputmavericks-$VER.pkg"
+          # The enclosure names the asset publish-release.yml will attach under $TAG, the tag it mints.
+          URL="https://github.com/${GITHUB_REPOSITORY}/releases/download/$TAG/voodooinputmavericks-$VER.pkg"
           # shipyard's signer (scripts/sign_and_appcast.sh) fetches the prebuilt ed25519-sign and hands it
           # the key on STDIN, via `printenv SPARKLE_PRIVATE_KEY | ed25519-sign -f - PKG` inside the
           # script: this step never expands the key into a command line or a trace. It then runs
           # assert_update_trusted.sh, which verifies the signature against the SUPublicEDKey of the
           # updater ALREADY INSTALLED -- read from the live release's pkg via the live appcast, not from
           # this repo -- so a key installed clients would reject fails HERE, not on users' machines, and
-          # no appcast is written. docs/release-notes/vVER.md is inlined as the appcast <description>.
+          # no appcast is written. docs/release-notes/$TAG.md is inlined as the appcast <description>.
           [ -f "$SHIPYARD_SCRIPTS/sign_and_appcast.sh" ] || { echo "::error::no sign_and_appcast.sh under SHIPYARD_SCRIPTS='$SHIPYARD_SCRIPTS'"; exit 1; }
           sh "$SHIPYARD_SCRIPTS/sign_and_appcast.sh" \
             --channel-title "Mavericks Trackpad 2" --version "$VER" --pkg-url "$URL" \
-            --notes-file "docs/release-notes/v$VER.md" --pkg "$PKG" --min-os 10.9.5 > build/appcast.xml
+            --notes-file "docs/release-notes/$TAG.md" --pkg "$PKG" --min-os 10.9.5 > build/appcast.xml
           echo "=== appcast.xml ==="; cat build/appcast.xml
 
-      - name: Upload build artifact (always)
+      # The release body travels IN the artifact: publish-release.yml does not check out this repo. It
+      # is the same file the appcast just inlined, so the Release page and the updater tell one story.
+      # No SHA256SUMS here -- publish-release.yml regenerates it over everything it attaches.
+      - name: Stage the release notes into the artifact
+        if: steps.ver.outputs.publish == 'true'
+        run: cp "docs/release-notes/${{ steps.ver.outputs.tag }}.md" build/RELEASE_NOTES.md
+
+      # publish-release.yml attaches EVERY file in this artifact (bar RELEASE_NOTES.md) as a release
+      # asset, so it holds exactly the pkg, and on a publishing run the appcast + notes -- nothing else.
+      - name: Upload build artifact
         uses: actions/upload-artifact@v7
         with:
           name: voodooinputmavericks-pkg
-          if-no-files-found: warn   # appcast.xml is tag-only; the .pkg always exists
+          if-no-files-found: warn   # the .pkg always exists; appcast.xml + RELEASE_NOTES.md only when publishing
           path: |
             build/voodooinputmavericks-${{ steps.ver.outputs.version }}.pkg
             build/appcast.xml
+            build/RELEASE_NOTES.md
 
-  # All-or-nothing publish: the ONLY job that writes to GitHub Releases, gated on a
-  # successful build. A forgotten `needs` entry is the classic way to ship a partial
-  # release -- keep this list complete as build jobs are added.
-  publish:
+  # Before anything is published: no log of this run, and no file about to be released, carries a
+  # piece of the signing key. publish-release.yml looks for this job's record on any signed release;
+  # it cannot run the scan itself (reading job logs needs actions: read, which a called workflow may
+  # not ask for). always(): a build that fails AFTER signing has logs written while the key was in
+  # use, and they are just as public -- so they are scanned too.
+  scan:
     needs: [build-macos]
-    if: github.ref_type == 'tag'
-    runs-on: ubuntu-latest
-    steps:
-      # Check out the repo so docs/release-notes/vX.Y.Z.md exists for body_path below (the
-      # download-artifact step only brings the .pkg + appcast, not the source tree).
-      - uses: actions/checkout@v7
-      - name: Download build artifacts
-        uses: actions/download-artifact@v8
-        with:
-          path: dist
-          merge-multiple: true
-      - name: Publish to GitHub Releases
-        uses: softprops/action-gh-release@v3
-        with:
-          # Human-readable release body = the same notes we ship in the appcast. GitHub renders
-          # Markdown natively, so the raw .md is correct here (no HTML). ref_name on a tag push is
-          # vX.Y.Z, matching the file name; this job only runs on tags (if: github.ref_type=='tag').
-          body_path: docs/release-notes/${{ github.ref_name }}.md
-          # Pre-release ONLY if the tag has a -suffix (e.g. v0.2.0-beta1). A plain v0.x is now a FULL
-          # release so GitHub's /releases/latest/ resolves to it -- which is what the updater's
-          # SUFeedURL (/releases/latest/download/appcast.xml) depends on. (Dropped the old "v0.x =>
-          # prerelease" rule, which hid every 0.x release from /latest/ and broke the feed.)
-          prerelease: ${{ contains(github.ref_name, '-') }}
-          files: |
-            dist/voodooinputmavericks-*.pkg
-            dist/appcast.xml
+    if: always() && (needs.build-macos.outputs.publish == 'true')
+    permissions:
+      actions: read     # this run's job logs
+      contents: read
+    uses: ModernMavericks/shipyard/.github/workflows/scan-for-key.yml@v1
+    with:
+      artifact: voodooinputmavericks-pkg
+    secrets:
+      SPARKLE_PRIVATE_KEY: ${{ secrets.SPARKLE_PRIVATE_KEY }}
+
+  # All-or-nothing publish through the family's one publisher: it regenerates SHA256SUMS, uses
+  # RELEASE_NOTES.md from the artifact as the Release body (failing if it is missing or empty), refuses
+  # an already-taken tag, and mints the tag at this run's commit (a tag pushed with GITHUB_TOKEN would
+  # trigger nothing, so the publisher must mint it inline). `version` IS the tag name: v<version>, the
+  # shape every release of this repo has had. A forgotten `needs` entry is the classic way to ship a
+  # partial release -- keep this list complete as build jobs are added.
+  publish:
+    needs: [build-macos, scan]
+    if: needs.build-macos.outputs.publish == 'true'
+    permissions:
+      contents: write
+    uses: ModernMavericks/shipyard/.github/workflows/publish-release.yml@v1
+    with:
+      version: ${{ needs.build-macos.outputs.tag }}
+      artifact: voodooinputmavericks-pkg

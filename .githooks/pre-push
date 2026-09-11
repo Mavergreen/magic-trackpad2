@@ -1,27 +1,28 @@
 #!/bin/sh
-# Pre-push guard: a release tag (v*) must match MT2_VERSION AND ship non-empty release notes, so a
-# push can never create a tag the release CI will reject (the same checks run in .github/workflows/
-# release.yml). Belt-and-suspenders + fast local feedback.
+# Pre-push guard: never push a release tag (v*) by hand.
+#
+# Releases are cut by dispatching .github/workflows/release.yml with release=true from main; shipyard's
+# publish-release.yml then mints v<MAVERICKS_VERSION> itself, at the dispatched commit. It refuses a
+# tag that already exists (so two runs racing one version rebuild rather than relabel), which means a
+# hand-pushed tag publishes nothing -- it only makes the dispatch for that version refuse. Deleting a
+# tag (git push origin :refs/tags/vX) is still allowed: that is how you would undo one.
+#
+# Cutting a release: bump MAVERICKS_VERSION in CMakeLists.txt, commit docs/release-notes/v<version>.md,
+# push main, then: gh workflow run release.yml -f release=true
 #
 # Install once:  git config core.hooksPath .githooks
 set -eu
 
-VER=$(grep -m1 'set(MT2_VERSION' CMakeLists.txt | sed -E 's/.*"([^"]+)".*/\1/')
-
 # stdin: <local ref> <local sha> <remote ref> <remote sha> per pushed ref.
-while read -r _local_ref _local_sha remote_ref _remote_sha; do
+while read -r _local_ref local_sha remote_ref _remote_sha; do
     case "$remote_ref" in
     refs/tags/v*)
+        case "$local_sha" in *[!0]*) : ;; *) continue ;; esac   # all zeros: a deletion
         tag="${remote_ref#refs/tags/}"
-        if [ "$tag" != "v$VER" ]; then
-            echo "pre-push: tag $tag != v$VER (CMakeLists MT2_VERSION); keep them in sync" >&2
-            exit 1
-        fi
-        notes="docs/release-notes/$tag.md"
-        if [ ! -s "$notes" ]; then
-            echo "pre-push: missing/empty $notes -- release notes are required for $tag" >&2
-            exit 1
-        fi
+        echo "pre-push: refusing to push release tag $tag -- release.yml mints release tags itself." >&2
+        echo "pre-push: bump MAVERICKS_VERSION + add docs/release-notes/v<version>.md, push main," >&2
+        echo "pre-push: then dispatch: gh workflow run release.yml -f release=true" >&2
+        exit 1
         ;;
     esac
 done

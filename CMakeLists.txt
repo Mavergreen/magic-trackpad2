@@ -13,7 +13,9 @@ set(CMAKE_OSX_ARCHITECTURES "x86_64" CACHE STRING "Target architectures")
 # Single source of truth for the product version. May carry a pre-release suffix
 # (e.g. -pre.1 / -rc.1) that CMake's project(VERSION) can't hold, so keep the full
 # string here and feed project() only the numeric part. The .pkg name + version and
-# CI all derive from MAVERICKS_VERSION -- bump it here, tag v<MAVERICKS_VERSION> to match.
+# CI all derive from MAVERICKS_VERSION (CI reads it via scripts/derive-upstream-version.sh).
+# To release: bump it here, commit docs/release-notes/v<MAVERICKS_VERSION>.md, push main,
+# and dispatch release.yml with release=true -- CI mints the v<MAVERICKS_VERSION> tag itself.
 set(MAVERICKS_VERSION "0.5.2")
 string(REGEX MATCH "^[0-9]+\\.[0-9]+\\.[0-9]+" MAVERICKS_VERSION_NUMERIC "${MAVERICKS_VERSION}")
 project(mt2 VERSION ${MAVERICKS_VERSION_NUMERIC} LANGUAGES C CXX)
