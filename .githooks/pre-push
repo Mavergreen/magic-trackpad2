@@ -7,8 +7,8 @@
 # hand-pushed tag publishes nothing -- it only makes the dispatch for that version refuse. Deleting a
 # tag (git push origin :refs/tags/vX) is still allowed: that is how you would undo one.
 #
-# Cutting a release: bump MAVERICKS_VERSION in CMakeLists.txt, commit docs/release-notes/v<version>.md,
-# push main, then: gh workflow run release.yml -f release=true
+# Cutting a release: bump MAVERICKS_VERSION in CMakeLists.txt, optionally commit
+# release-notes/v<version>.md, push main, then: gh workflow run release.yml -f release=true
 #
 # Install once:  git config core.hooksPath .githooks
 set -eu
@@ -20,7 +20,7 @@ while read -r _local_ref local_sha remote_ref _remote_sha; do
         case "$local_sha" in *[!0]*) : ;; *) continue ;; esac   # all zeros: a deletion
         tag="${remote_ref#refs/tags/}"
         echo "pre-push: refusing to push release tag $tag -- release.yml mints release tags itself." >&2
-        echo "pre-push: bump MAVERICKS_VERSION + add docs/release-notes/v<version>.md, push main," >&2
+        echo "pre-push: bump MAVERICKS_VERSION (release-notes/v<version>.md is optional), push main," >&2
         echo "pre-push: then dispatch: gh workflow run release.yml -f release=true" >&2
         exit 1
         ;;

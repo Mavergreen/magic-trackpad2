@@ -56,14 +56,15 @@ if echo "$out" | grep -qE '(\*\*|^- |^## )'; then
   echo "FAIL: raw Markdown leaked into rendered HTML"; echo "$out"; exit 1
 fi
 
-# --- real shipped notes: heading + a bullet must both render -----------------------------------------
-real=$(sh "$gen" --render-notes "$root/docs/release-notes/v0.3.0.md")
-echo "$real" | grep -qF '<h2>Mavericks Trackpad 2 — v0.3.0</h2>' || { echo "FAIL: v0.3.0 heading"; echo "$real"; exit 1; }
+# --- real shipped notes: no title of its own (release-notes.sh supplies that), a bullet must render ---
+# (v0.3.0.md is hand-authored prose only, per release-notes/README.md -- it must NOT start with its
+# own '## ' heading, so there is no <h2> to check for here.)
+real=$(sh "$gen" --render-notes "$root/release-notes/v0.3.0.md")
 echo "$real" | grep -qF '<ul>' || { echo "FAIL: v0.3.0 has no list"; echo "$real"; exit 1; }
 echo "$real" | grep -qF '<strong>Check for Updates, in the pane</strong>' || { echo "FAIL: v0.3.0 bold bullet lead"; echo "$real"; exit 1; }
 
 # full appcast path also embeds the rendered HTML (not raw Markdown) inside the CDATA
-full=$(sh "$gen" "Mavericks Trackpad 2" 0.3.0 https://example/pkg 10.9.5 "$root/docs/release-notes/v0.3.0.md" 'sparkle:edSignature="x" length="1"')
-echo "$full" | grep -qF '<h2>Mavericks Trackpad 2' || { echo "FAIL: appcast lacks rendered heading"; echo "$full"; exit 1; }
+full=$(sh "$gen" "Mavericks Trackpad 2" 0.3.0 https://example/pkg 10.9.5 "$root/release-notes/v0.3.0.md" 'sparkle:edSignature="x" length="1"')
+echo "$full" | grep -qF '<strong>Check for Updates, in the pane</strong>' || { echo "FAIL: appcast lacks rendered prose"; echo "$full"; exit 1; }
 
 echo OK

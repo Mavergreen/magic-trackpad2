@@ -12,8 +12,9 @@ name: release
 #                            without it, build an artifact only.
 # The version is this repo's own semver, hand-bumped as MAVERICKS_VERSION in CMakeLists.txt
 # (scripts/derive-upstream-version.sh reads it); the tag is v<that>, as for every release
-# since v0.1.0. So cutting a release is: bump MAVERICKS_VERSION, commit
-# docs/release-notes/v<version>.md, push main, dispatch with release=true.
+# since v0.1.0. So cutting a release is: bump MAVERICKS_VERSION, optionally commit
+# release-notes/v<version>.md (hand-authored prose is optional -- shipyard's release-notes.sh
+# generates the rest), push main, dispatch with release=true.
 #
 # There is no tag trigger any more. shipyard's publish-release.yml mints the tag itself at
 # the dispatched commit, and refuses a tag that already exists (two runs racing one
@@ -77,6 +78,12 @@ jobs:
       publish: ${{ steps.ver.outputs.publish }}
     steps:
       - uses: actions/checkout@v7
+        with:
+          # release-notes.sh decides the release kind (first release vs. repackage) from visible
+          # tags; a shallow checkout hides them and it refuses to run. Full history, always -- this
+          # job is also the PR/push build, and a shallow clone there would fail differently on the
+          # rare PR that touches release notes generation.
+          fetch-depth: 0
 
       # shipyard installs itself via its own action. It self-registers in the per-user CMake package
       # registry (find_package(MavericksShipyard), no CMAKE_PREFIX_PATH downstream) and exports
@@ -128,16 +135,14 @@ jobs:
             rc=$?
             set -e
             case "$rc" in
-              0) echo "::error::$TAG is already released. Bump MAVERICKS_VERSION in CMakeLists.txt, add docs/release-notes/v<new>.md, push main, and dispatch again."
+              0) echo "::error::$TAG is already released. Bump MAVERICKS_VERSION in CMakeLists.txt, optionally add release-notes/v<new>.md, push main, and dispatch again."
                  exit 1 ;;
               2) echo "$TAG is free" ;;
               *) echo "::error::could not read tags from origin (git ls-remote exit $rc); refusing to build a release blind"
                  exit 1 ;;
             esac
-            # Release-notes gate: the notes become the appcast <description> the updater shows AND the
-            # GitHub Release body; publish-release.yml fails an empty body, so fail it here first.
-            [ -s "docs/release-notes/$TAG.md" ] \
-              || { echo "::error::missing/empty docs/release-notes/$TAG.md (author the release notes first)"; exit 1; }
+            # Release notes are generated below by shipyard's release-notes.sh; hand-authored prose
+            # at release-notes/$TAG.md is optional, not required.
             publish=true
           fi
           {
@@ -201,6 +206,26 @@ jobs:
           echo "floor check:"; pkgutil --expand "build/voodooinputmavericks-${{ steps.ver.outputs.version }}.pkg" /tmp/pkgx
           grep -o 'os-version min="[0-9.]*"' /tmp/pkgx/Distribution
 
+      # Generated once, straight into the artifact dir: this file becomes BOTH the appcast
+      # <description> (inlined below) AND the GitHub Release body (publish-release.yml reads it
+      # from the artifact, unmodified) -- the same bytes, read twice. release-notes.sh composes the
+      # title itself and slots any hand-authored prose at release-notes/$TAG.md verbatim after it;
+      # that file is now OPTIONAL (see release-notes/README.md) -- a release with none still ships,
+      # with just the generated "What changed" + footer sections.
+      - name: Generate the release notes
+        if: steps.ver.outputs.publish == 'true'
+        run: |
+          set -eu
+          [ -f "$SHIPYARD_SCRIPTS/release-notes.sh" ] || { echo "::error::no release-notes.sh under SHIPYARD_SCRIPTS='$SHIPYARD_SCRIPTS'"; exit 1; }
+          # --tag/--version equal, as for every self-upstream repo (this repo has no separate "full
+          # version" distinct from its tag; --version's only other job, golang's line disambiguation,
+          # doesn't apply here): this both matches release-notes.sh's own contract and titles the
+          # release "v0.5.4", the form every prior hand-authored heading used.
+          sh "$SHIPYARD_SCRIPTS/release-notes.sh" \
+            --tag "${{ steps.ver.outputs.tag }}" --version "${{ steps.ver.outputs.tag }}" \
+            --product "Mavericks Trackpad 2" --min-os 10.9.5 --out build/RELEASE_NOTES.md
+          echo "=== RELEASE_NOTES.md ==="; cat build/RELEASE_NOTES.md
+
       - name: Sign the .pkg + generate the Sparkle appcast
         if: steps.ver.outputs.publish == 'true'
         env:
@@ -222,19 +247,13 @@ jobs:
           # assert_update_trusted.sh, which verifies the signature against the SUPublicEDKey of the
           # updater ALREADY INSTALLED -- read from the live release's pkg via the live appcast, not from
           # this repo -- so a key installed clients would reject fails HERE, not on users' machines, and
-          # no appcast is written. docs/release-notes/$TAG.md is inlined as the appcast <description>.
+          # no appcast is written. build/RELEASE_NOTES.md (generated above) is inlined as the appcast
+          # <description> -- the very file that also becomes the GitHub Release body.
           [ -f "$SHIPYARD_SCRIPTS/sign_and_appcast.sh" ] || { echo "::error::no sign_and_appcast.sh under SHIPYARD_SCRIPTS='$SHIPYARD_SCRIPTS'"; exit 1; }
           sh "$SHIPYARD_SCRIPTS/sign_and_appcast.sh" \
             --channel-title "Mavericks Trackpad 2" --version "$VER" --pkg-url "$URL" \
-            --notes-file "docs/release-notes/$TAG.md" --pkg "$PKG" --min-os 10.9.5 > build/appcast.xml
+            --notes-file "build/RELEASE_NOTES.md" --pkg "$PKG" --min-os 10.9.5 > build/appcast.xml
           echo "=== appcast.xml ==="; cat build/appcast.xml
-
-      # The release body travels IN the artifact: publish-release.yml does not check out this repo. It
-      # is the same file the appcast just inlined, so the Release page and the updater tell one story.
-      # No SHA256SUMS here -- publish-release.yml regenerates it over everything it attaches.
-      - name: Stage the release notes into the artifact
-        if: steps.ver.outputs.publish == 'true'
-        run: cp "docs/release-notes/${{ steps.ver.outputs.tag }}.md" build/RELEASE_NOTES.md
 
       # publish-release.yml attaches EVERY file in this artifact (bar RELEASE_NOTES.md) as a release
       # asset, so it holds exactly the pkg, and on a publishing run the appcast + notes -- nothing else.

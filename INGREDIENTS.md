@@ -8,7 +8,7 @@ release is `v<MAVERICKS_VERSION>`, cut by hand with a `workflow_dispatch` of `re
 
 | Ingredient | Pinned in | Renovate | On a change |
 |---|---|---|---|
-| magic-trackpad2 itself (its own upstream) | `MAVERICKS_VERSION` in `CMakeLists.txt` (semver; read by `scripts/derive-upstream-version.sh`) | n/a: bumped by hand, nothing external to track | bump it, add `docs/release-notes/v<version>.md`, dispatch `release.yml` with `release=true` |
+| magic-trackpad2 itself (its own upstream) | `MAVERICKS_VERSION` in `CMakeLists.txt` (semver; read by `scripts/derive-upstream-version.sh`) | n/a: bumped by hand, nothing external to track | bump it, optionally add `release-notes/v<version>.md`, dispatch `release.yml` with `release=true` |
 | MacOSX10.9 SDK (kext cross-build only) | URL + SHA-256 in shipyard's `scripts/fetch_sdk.sh` | ✅ via `ModernMavericks/shipyard@v1` (the install action) | the next build uses it; the SDK cache is keyed on `fetch_sdk.sh`, and the kext equivalence gate must still pass |
 | Sparkle framework (1.27.3, the updater) | shipyard's `scripts/fetch_sparkle_framework.sh`, via `mavericks_add_updater_app()` | ✅ via `shipyard@v1` | the next build uses it |
 | Updater host, LaunchAgent, pkg helpers (`stage_updater.sh`, `build_component_pkg.sh`, compat guard) | shipyard, installed by `install@v1` | ✅ via `shipyard@v1` | the next build uses them |
