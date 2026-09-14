@@ -86,7 +86,7 @@ add_test(NAME test_install_scripts_clean COMMAND sh ${CMAKE_SOURCE_DIR}/tests/te
 
 # Build-artifact invariant: shipped Info.plists lint clean + updater has SUFeedURL/SUPublicEDKey.
 # (The 10.9-safety compat guard is now a per-target POST_BUILD via mavericks_assert_binary_compatible() in
-# tools/CMakeLists.txt -- it fails `cmake --build` directly, so it is no longer a ctest here.)
+# tools/CMakeLists.txt -- it fails `shipyard-cmake --build` directly, so it is no longer a ctest here.)
 add_test(NAME test_plists COMMAND sh ${CMAKE_SOURCE_DIR}/cmake/check_plists.sh ${CMAKE_BINARY_DIR})
 
 

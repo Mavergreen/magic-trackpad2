@@ -20,10 +20,10 @@ Recipes. For the model see `explanation.md`; for facts see `reference.md`.
 ```sh
 # Reloading while the pad is ON/streaming is fine — empirically clean across many reloads; teardown
 # restores the cloned vtable FIRST (no power-off dance needed; the old "pad OFF first" rule was dropped).
-cmake --build cmake-build --target kext-unload   # drop the running/boot copy
-cmake --build cmake-build --target kext-load     # build + stage + load
+shipyard-cmake --build cmake-build --target kext-unload   # drop the running/boot copy
+shipyard-cmake --build cmake-build --target kext-load     # build + stage + load
 # Or the one-shot dev loop (unload -> drain -> load -> bounce present transport):
-cmake --build cmake-build --target reload
+shipyard-cmake --build cmake-build --target reload
 ```
 
 - **`kext-load` (and `reload`) also `kextload`s `AppleUSBMultitouch.kext` + `AppleBluetoothMultitouch.kext`** first
@@ -48,12 +48,12 @@ does the work. `ascr`/`gdut` does NOT load ours (it only eagerly loads terminolo
 ```sh
 # Build + install the loader (osax + watcher binary + per-user LaunchAgent), then it auto-injects on every
 # System Preferences launch:
-cmake --build cmake-build --target prefpane-refresh        # build osax (+ dylib + arm) ...
-cmake --build cmake-build --target prefpane-refresh-install # ... osax -> /Library/ScriptingAdditions
-cmake --build cmake-build --target prefpane-watch-install   # watcher -> /usr/local/libexec + LaunchAgent (loads it)
+shipyard-cmake --build cmake-build --target prefpane-refresh        # build osax (+ dylib + arm) ...
+shipyard-cmake --build cmake-build --target prefpane-refresh-install # ... osax -> /Library/ScriptingAdditions
+shipyard-cmake --build cmake-build --target prefpane-watch-install   # watcher -> /usr/local/libexec + LaunchAgent (loads it)
 
 # Full teardown (osax + watcher + LaunchAgent). Leaves SIMBL alone:
-cmake --build cmake-build --target prefpane-uninstall
+shipyard-cmake --build cmake-build --target prefpane-uninstall
 ```
 
 - **Coexists with SIMBL.** Users keep SIMBL for unrelated plugins; we ship NO SIMBL plugin and the
@@ -119,7 +119,7 @@ ad hoc. A future `re/verify-facts` could read the header and check every constan
 ## Verify the post-merge polish (on-device, pending as of 2026-06-25)
 
 Three deploy/identity changes shipped to `main` need on-device confirmation. Preconditions: a USB
-backup pointer is live; the updated package is deployed (`cmake --build cmake-build --target pkg` +
+backup pointer is live; the updated package is deployed (`shipyard-cmake --build cmake-build --target pkg` +
 `sudo installer -pkg cmake-build/mt2d-1.0.0.pkg -target /`, already done once).
 
 1. **Two-boot boot-load test** (the genuine paths need Apple's kexts loaded at boot — `0109c9d`).

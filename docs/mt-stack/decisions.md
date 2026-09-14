@@ -940,7 +940,7 @@ every static/CI gate had passed. All fixed in 0.5.1; each now has a kext-free re
    FIX: stage unconditionally (mirror `tools/CMakeLists.txt`). DEFENSE: `cmake/check_pkg_payload.sh` expands
    the finished pkg and asserts every install root a working product needs (updater app + update-check
    agent, kext, loader, pane bundle, daemons, install scripts); wired FAIL-CLOSED into the `pkg` target, so
-   it fails `cmake --build --target pkg` locally AND in CI.
+   it fails `shipyard-cmake --build --target pkg` locally AND in CI.
    LESSON: a refactor removing a cache var silently disables everything gated on it — grep the WHOLE tree
    for the var, not just the file you edited.
 

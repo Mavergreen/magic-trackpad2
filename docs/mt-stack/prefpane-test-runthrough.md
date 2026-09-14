@@ -6,7 +6,7 @@ actions** (plug/unplug USB, power the MT2 on/off) and reports the on-screen UI. 
 
 ## Preconditions
 - Loader installed + live: `launchctl list | grep mt2panewatch` shows a pid. If not:
-  `cmake --build cmake-build --target prefpane-refresh-install` then `... --target prefpane-watch-install`.
+  `shipyard-cmake --build cmake-build --target prefpane-refresh-install` then `... --target prefpane-watch-install`.
 - A **backup pointer** (mouse) — powering the MT2 off while it's the only pointer strands you.
 - SIMBL may stay installed for unrelated plugins (we coexist); just don't also install our dev SIMBL plugin
   (osax + our SIMBL plugin together = double-swizzle).
