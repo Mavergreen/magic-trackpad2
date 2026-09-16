@@ -44,13 +44,13 @@ devices connected via our VoodooInput terminal.
 ## Develop
 
 ```sh
-cmake --preset native                                  # configure (once; use `cross` to cross-build)
-cmake --build build-native                             # tools + kext
-cmake --build build-native --target kext               # just the kernel extension
-ctest --test-dir build-native --output-on-failure      # unit + shell + bats tests
-cmake --build build-native --target reload             # hot-reload the running kext
-cmake --build build-native --target pkg
-cmake --build build-native --target install-pkg
+shipyard-cmake --preset native                                  # configure (once; use `cross` to cross-build)
+shipyard-cmake --build build-native                             # tools + kext
+shipyard-cmake --build build-native --target kext               # just the kernel extension
+shipyard-ctest --test-dir build-native --output-on-failure      # unit + shell + bats tests
+shipyard-cmake --build build-native --target reload             # hot-reload the running kext
+shipyard-cmake --build build-native --target pkg
+shipyard-cmake --build build-native --target install-pkg
 ```
 
 ## Uninstall

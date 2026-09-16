@@ -5,8 +5,8 @@
 #   test_appcast_notes.sh [SHIPYARD_SCRIPTS_DIR]
 #
 # ctest passes ${MavericksShipyard_SCRIPTS} (the configure already required shipyard). Run by hand, it
-# falls back to $SHIPYARD_SCRIPTS (exported by shipyard's install@v1) and then the CMake user package
-# registry. Not finding shipyard is a SKIP (77, ctest's SKIP_RETURN_CODE), never a pass: this used to
+# falls back to $SHIPYARD_SCRIPTS (exported by shipyard's install@v1) and then msc.sh's shipyard-cmake
+# probe. Not finding shipyard is a SKIP (77, ctest's SKIP_RETURN_CODE), never a pass: this used to
 # look under the pre-rename MavericksSharedCMake registry entry and exit 0 on a miss, so once the
 # package became MavericksShipyard it "passed" without rendering anything.
 set -e
@@ -14,8 +14,8 @@ here=$(dirname "$0")
 root=$(cd "$here/.." && pwd)
 scripts="${1:-${SHIPYARD_SCRIPTS:-}}"
 if [ -z "$scripts" ]; then
-  _reg=$(cat "$HOME/.cmake/packages/MavericksShipyard/"* 2>/dev/null | head -1)
-  [ -z "$_reg" ] || scripts="$_reg/scripts"
+  # In a subshell, tolerating failure: msc.sh EXITS when it finds nothing, and this test must SKIP.
+  scripts="$(. "$root/msc.sh" >/dev/null 2>&1 && printf '%s' "$SHIPYARD")" || scripts=""
 fi
 gen="$scripts/gen_appcast.sh"
 [ -f "$gen" ] || { echo "SKIP: mavericks-shipyard not installed (no gen_appcast.sh at '$gen')"; exit 77; }

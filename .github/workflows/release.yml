@@ -85,9 +85,10 @@ jobs:
           # rare PR that touches release notes generation.
           fetch-depth: 0
 
-      # shipyard installs itself via its own action. It self-registers in the per-user CMake package
-      # registry (find_package(MavericksShipyard), no CMAKE_PREFIX_PATH downstream) and exports
-      # $SHIPYARD_SCRIPTS, the installed scripts dir every later step uses -- never a hard-coded
+      # shipyard installs itself via its own action: the pkg lands shipyard-cmake on PATH -- the only
+      # cmake find_package(MavericksShipyard) accepts, and the one that supplies the prefix, so there
+      # is still no CMAKE_PREFIX_PATH downstream. The action also exports $SHIPYARD_SCRIPTS, the
+      # installed scripts dir every later step uses -- never a hard-coded
       # $HOME/.local/share/cmake/<package>/scripts path, which is exactly what broke when the package
       # was renamed from MavericksSharedCMake. @v1 like every sibling: Renovate's github-actions
       # manager tracks the moving major tag.
@@ -185,8 +186,8 @@ jobs:
 
       - name: Configure + build (x86_64 @ 10.9 userland + kext + updater)
         run: |
-          cmake -S . -B build -DMT2_MACOSX_10_9_SDK="${{ steps.sdk.outputs.path }}"
-          cmake --build build
+          shipyard-cmake -S . -B build -DMT2_MACOSX_10_9_SDK="${{ steps.sdk.outputs.path }}"
+          shipyard-cmake --build build
           echo "userland slice:"; lipo -info build/sbin/mt2_reenumerate
           echo "kext:"; file build/VoodooInputMavericks.kext/Contents/MacOS/VoodooInputMavericks
 
@@ -198,11 +199,11 @@ jobs:
         # frameworks (MultitouchSupport / MTDeviceCreateListForDriverType, symbolicated
         # framework binaries) that don't exist on the macos-26 runner. It runs on the
         # 10.9 dev box; here we validate the cross-built product's logic + portable tooling.
-        run: ctest --test-dir build --output-on-failure -E '^test_re_bats$'
+        run: shipyard-ctest --test-dir build --output-on-failure -E '^test_re_bats$'
 
       - name: Build .pkg (10.9.5 install floor)
         run: |
-          cmake --build build --target pkg   # version derives from CMake MAVERICKS_VERSION
+          shipyard-cmake --build build --target pkg   # version derives from CMake MAVERICKS_VERSION
           echo "floor check:"; pkgutil --expand "build/voodooinputmavericks-${{ steps.ver.outputs.version }}.pkg" /tmp/pkgx
           grep -o 'os-version min="[0-9.]*"' /tmp/pkgx/Distribution
 
