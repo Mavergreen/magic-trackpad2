@@ -38,5 +38,45 @@ need  "usr/local/share/voodooinputmavericks/VoodooInputMavericksPane.bundle"
 needs postinstall
 needs agent-load.sh
 
+# --- Install-time messaging (conclusion pane) ----------------------------------------------------
+# Motivating regression (2026-09-20): postinstall's two user-facing messages -- "restart to finish"
+# and "install SIMBL for the Trackpad pane" -- are `echo`s, and PackageKit routes script stdout to
+# /var/log/install.log, which Installer.app never renders. So a 0.5.4 install told the user nothing,
+# the prefpane companion sat un-injectable for weeks, and every gate stayed green. The conclusion
+# pane is the surface Installer.app DOES show after the scripts run; assert it ships and stays wired.
+DIST=$(find "$tmp/x" -maxdepth 1 -type f -name Distribution | head -1)
+RSRC=$(find "$tmp/x" -maxdepth 1 -type d -name Resources | head -1)
+
+CONCL=""
+if [ -n "$DIST" ]; then
+    CONCL=$(sed -n 's/.*<conclusion[^>]*file="\([^"]*\)".*/\1/p' "$DIST" | head -1)
+fi
+if [ -n "$CONCL" ]; then
+    echo "PASS: distribution declares a conclusion pane ($CONCL)"
+else
+    echo "FAIL: distribution declares no <conclusion> pane -- install-time messages reach only install.log"
+    fail=1
+fi
+
+if [ -n "$CONCL" ] && [ -f "$RSRC/$CONCL" ]; then
+    echo "PASS: conclusion resource $CONCL"
+elif [ -n "$CONCL" ]; then
+    echo "FAIL: distribution names conclusion $CONCL but Resources/ does not contain it"
+    fail=1
+fi
+
+# Drift guard: the SIMBL URL the user is sent to lives in BOTH the postinstall (log record) and the
+# conclusion (what they actually read). Two copies of a URL is how this rots -- pin them together.
+if [ -n "$CONCL" ] && [ -f "$RSRC/$CONCL" ] && [ -n "$SCRIPTS" ] && [ -f "$SCRIPTS/postinstall" ]; then
+    u_post=$(grep -oE 'https://[A-Za-z0-9._/-]*SIMBL[A-Za-z0-9._/-]*' "$SCRIPTS/postinstall" | head -1)
+    u_conc=$(grep -oE 'https://[A-Za-z0-9._/-]*SIMBL[A-Za-z0-9._/-]*' "$RSRC/$CONCL" | head -1)
+    if [ -n "$u_post" ] && [ "$u_post" = "$u_conc" ]; then
+        echo "PASS: SIMBL URL matches between postinstall and conclusion ($u_post)"
+    else
+        echo "FAIL: SIMBL URL drift -- postinstall='$u_post' conclusion='$u_conc'"
+        fail=1
+    fi
+fi
+
 [ "$fail" = 0 ] && echo "ALL PASS: pkg payload complete ($PKG)" || echo "PKG PAYLOAD INCOMPLETE ($PKG)"
 exit $fail

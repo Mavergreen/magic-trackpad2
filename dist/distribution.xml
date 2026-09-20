@@ -5,6 +5,15 @@
          kernel extension). Shown by Installer.app on a direct .pkg install. Lives in dist/resources/ and
          is handed to productbuild via its resources flag. -->
     <welcome file="Welcome.html" mime-type="text/html"/>
+    <!-- Conclusion pane: the ONLY surface Installer.app renders after the scripts run, and therefore the
+         only place our two install-time messages actually reach a human. postinstall still echoes them,
+         but PackageKit sends script stdout to /var/log/install.log, which nobody reads. That is how a
+         0.5.4 install silently left the prefpane companion un-injectable (no SIMBL) for weeks. The text is
+         STATIC and covers both conditions ("if you were updating", "if you don't already have SIMBL"),
+         because Installer's only conditional mechanism is installation-check JS, which can ONLY block the
+         install; blocking the driver over a preference-pane prerequisite would be wrong, since the
+         trackpad works fine without SIMBL. Asserted by cmake/check_pkg_payload.sh. -->
+    <conclusion file="Conclusion.html" mime-type="text/html"/>
     <!--
       HARD install floor: OS X 10.9.5. A SAFETY gate, not a KPI limit. The hijack of
       AppleMultitouchDriver / MultitouchHID.plugin is reverse-engineered against
