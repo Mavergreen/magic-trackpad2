@@ -243,3 +243,45 @@ EOF
   [ "$status" -eq 0 ]
   printf '%s\n' "$output" | grep -q 'disasm'
 }
+
+# --- deployed: boot owner -----------------------------------------------------
+# Regression (2026-09-20): this section printed a BLANK -- which reads as "fine" --
+# for two independent reasons. (1) The pattern was the pre-rename `schmonz.*`, so it
+# stopped matching when the daemons became dev.modernmavericks.*. (2) The `|| echo
+# "(none)"` fallback could never fire: the exit status of `ls | grep | sed` is sed's,
+# which is 0 even when grep matched nothing. A diagnostic that silently prints nothing
+# is worse than one that errors, so the owner listing is its own testable helper and
+# the pattern is namespace-free (mt2|voodoo|trackpad) -- a future rename cannot
+# re-break it, and a GHOST daemon from an older install still shows up, which is the
+# whole point of the section.
+
+@test "re_boot_owner lists our current-namespace boot daemons" {
+  load_re
+  d="$BATS_TMPDIR/bo_current"; rm -rf "$d"; mkdir -p "$d"
+  touch "$d/dev.modernmavericks.voodooinputmavericks.plist" \
+        "$d/dev.modernmavericks.voodooinputmavericks.linkstated.plist" \
+        "$d/com.apple.unrelated.plist"
+  run re_boot_owner "$d"
+  [ "$status" -eq 0 ]
+  printf '%s\n' "$output" | grep -q "dev.modernmavericks.voodooinputmavericks.plist"
+  printf '%s\n' "$output" | grep -q "dev.modernmavericks.voodooinputmavericks.linkstated.plist"
+  ! printf '%s\n' "$output" | grep -q "com.apple.unrelated"
+}
+
+@test "re_boot_owner says (none) instead of printing nothing" {
+  load_re
+  d="$BATS_TMPDIR/bo_empty"; rm -rf "$d"; mkdir -p "$d"
+  touch "$d/com.apple.unrelated.plist"
+  run re_boot_owner "$d"
+  [ "$status" -eq 0 ]
+  printf '%s\n' "$output" | grep -q "(none)"
+}
+
+@test "re_boot_owner still catches a pre-rename ghost daemon" {
+  load_re
+  d="$BATS_TMPDIR/bo_ghost"; rm -rf "$d"; mkdir -p "$d"
+  touch "$d/com.schmonz.mt2d.plist"
+  run re_boot_owner "$d"
+  [ "$status" -eq 0 ]
+  printf '%s\n' "$output" | grep -q "com.schmonz.mt2d.plist"
+}

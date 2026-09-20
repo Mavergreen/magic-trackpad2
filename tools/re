@@ -600,6 +600,18 @@ sub_mt2_name() {  # READ-ONLY: dump on-device HID DeviceName Feature reports (bu
   "$bin" "$@"
 }
 
+# Which LaunchDaemons load a trackpad driver at boot -- or an explicit "(none)". Its own helper so it
+# is unit-testable (tests/test_re.bats), because this section printed a silent BLANK for weeks, for TWO
+# independent reasons: the pattern was the pre-rename `schmonz.*`, and the `|| echo "(none)"` fallback
+# was unreachable (a pipeline's status is its LAST command's, so `ls | grep | sed` exits 0 even when
+# grep matched nothing). Match on WHAT a daemon is (mt2|voodoo|trackpad), never on a namespace: a
+# future rename then cannot re-break this, and a GHOST daemon from an older install -- the failure
+# this section exists to catch -- still shows up.
+re_boot_owner() {  # [launchdaemons-dir]
+  bo_hits=$(ls "${1:-/Library/LaunchDaemons}" 2>/dev/null | grep -iE 'mt2|voodoo|trackpad')
+  if [ -n "$bo_hits" ]; then printf '%s\n' "$bo_hits" | sed 's/^/  /'; else echo "  (none)"; fi
+}
+
 sub_deployed() {  # what MT2 driver is ACTUALLY loaded + driving right now, and does it match the tree build?
   root=$(cd "$(dirname "$0")/.." && pwd)
   # The kernel's own live class-instance census (IOKitDiagnostics "Classes"): compact "Name"=N pairs,
@@ -637,7 +649,7 @@ sub_deployed() {  # what MT2 driver is ACTUALLY loaded + driving right now, and 
   printf "  %-34s %s   <- event drivers on the other USB ifaces (\"cursor stalls\" suspect)\n" "AppleUSBMultitouchHIDEventDriver" "$(cnt AppleUSBMultitouchHIDEventDriver)"
 
   echo "== BOOT OWNER (LaunchDaemons) =="
-  ls /Library/LaunchDaemons/ 2>/dev/null | grep -iE 'schmonz.*(mt2|voodoo)' | sed 's/^/  /' || echo "  (none)"
+  re_boot_owner /Library/LaunchDaemons
 }
 
 sub_mt_devices() {  # list MultitouchSupport devices (builds tools/multitouch_transport)
