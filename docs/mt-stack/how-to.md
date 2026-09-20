@@ -36,33 +36,55 @@ shipyard-cmake --build cmake-build --target reload
 - If a load fails with **kextload error 71**, it's usually an unresolved symbol / missing
   `OSBundleLibraries` entry (`sudo kextutil -n -t /tmp/MavericksVoodooInputHost.kext` shows which).
 
-## Trackpad prefpane live-refresh (standalone osax loader — no SIMBL)
+## Trackpad prefpane live-refresh (SIMBL plugin — and it has a HARD prerequisite)
 
-The Trackpad pref pane gets a live USB↔BT transport-refresh from a pure-C GC-neutral Scripting Addition
-(`tools/mt2_prefpane_refresh/`) injected into System Preferences. Delivery is a **standalone `.osax` +
-our own launch-watcher** — NOT SIMBL. How it loads (RE'd in `decisions.md` "Scripting Addition loading on
-10.9"): additions load on demand only, so the watcher sends our own `MT2x`/`load` Apple event to System
-Prefs on launch; the osax (in `/Library/ScriptingAdditions`) loads and its `__attribute__((constructor))`
-does the work. `ascr`/`gdut` does NOT load ours (it only eagerly loads terminology-bearing additions).
+The Trackpad pane gets its live USB↔BT transport refresh, battery row, icon and rename from a pure-C
+GC-neutral bundle (`tools/voodooinputmavericks_prefpane/`) injected into System Preferences. **Delivery is
+a SIMBL plugin and nothing else.** The standalone `.osax` + launch-watcher route that this section used to
+describe was retired in `c13c223` (2026-07-20) to collapse two loaders into one; `decisions.md` ("Scripting
+Addition loading on 10.9") keeps the RE of how it worked, and it remains the fallback if we ever need to
+drop the SIMBL dependency.
+
+**Why this matters more than it looks.** Under the owned/satellite terminal we publish a fabricated
+`AppleMultitouchDevice`, and Apple's `-[Trackpad loadMainView]` decides Trackpad-vs-NoTrackpad *solely* by
+matching `AppleUSBMultitouchDriver` / `BNBTrackpadDevice` — both of which are count 0 for us, by design
+(`open-questions.md` → "Prefpane shows No Trackpad Connected on synthetic USB"). So the payload is not a
+nicety on top of a working pane: **it is the only reason the pane sees the trackpad at all.** No
+SIMBLAgent → no injection → the pane is dark while the driver is perfectly healthy.
 
 ```sh
-# Build + install the loader (osax + watcher binary + per-user LaunchAgent), then it auto-injects on every
-# System Preferences launch:
-shipyard-cmake --build cmake-build --target prefpane-refresh        # build osax (+ dylib + arm) ...
-shipyard-cmake --build cmake-build --target prefpane-refresh-install # ... osax -> /Library/ScriptingAdditions
-shipyard-cmake --build cmake-build --target prefpane-watch-install   # watcher -> /usr/local/libexec + LaunchAgent (loads it)
-
-# Full teardown (osax + watcher + LaunchAgent). Leaves SIMBL alone:
-shipyard-cmake --build cmake-build --target prefpane-uninstall
+shipyard-cmake --build build-native --target prefpane-refresh                 # build the bundle
+shipyard-cmake --build build-native --target prefpane-refresh-simbl-install   # -> SIMBL Plugins (sudo)
+shipyard-cmake --build build-native --target prefpane-refresh-simbl-uninstall # remove it again
 ```
 
-- **Coexists with SIMBL.** Users keep SIMBL for unrelated plugins; we ship NO SIMBL plugin and the
-  installer/uninstaller NEVER touch SIMBL. Installing our own dev SIMBL plugin AND the osax together
-  double-loads (didSelect swizzled twice) — so don't; pick one loader.
-- **Verify a load:** open System Preferences, then
-  `grep -a "mt2panewatch\|MT2PaneRefresh\]" /var/log/system.log | tail` — expect
-  `[mt2panewatch] injected pid N` then `[MT2PaneRefresh] image loaded -> swizzled didSelect -> inject handler invoked`.
-- The pkg ships all three; its postinstall loads the agent for the console user (next login otherwise).
+For a release-identical on-device install use `install-pkg`, not hand-copied pieces — hand-migration is
+what produced the stale-payload and double-swizzle ghosts we chased for days.
+
+### Diagnose "the pane doesn't show my trackpad" (2026-09-20)
+
+Run these in order; the first mismatch is the answer. A healthy driver with a dark pane is almost always
+the loader, not the driver.
+
+```sh
+tools/re deployed                       # readers/mux/terminal bound? AppleMultitouchDeviceUserClient=1?
+ls -d "/Library/Application Support/SIMBL/SIMBLAgent.app"   # THE prerequisite — absent = found it
+launchctl list net.culater.SIMBL.Agent  # LastExitStatus 512 + no PID = app deleted, job still registered
+ls "/Library/Application Support/SIMBL/Plugins/"            # our bundle should be here
+grep -a "VoodooInputMavericksPane" /var/log/system.log | tail   # "payload active in pid N (via ...)"
+```
+
+- **Driver healthy + no `payload active` line = the loader, not the driver.** Gestures and cursor ride the
+  kext and are wholly independent of SIMBL; they keep working while the pane stays dark, which is exactly
+  what makes this failure quiet.
+- **SIMBL can vanish from a working machine.** Observed on the dev box: SIMBLAgent.app was deleted on
+  2026-07-30 (receipt `com.Wowfunhappy.MavSIMBL` and `/Library/LaunchAgents/net.culater.SIMBL.Agent.plist`
+  both survived, pointing at a binary that was gone), and the pane was dark from then until 2026-09-20.
+  The 0.5.4 postinstall *detected* it and printed the fix — into `/var/log/install.log`, which nobody
+  reads. That is why the installer now carries a `<conclusion>` pane (`dist/resources/Conclusion.html`,
+  asserted by `cmake/check_pkg_payload.sh`).
+- Reinstall SIMBL from <https://mavericksforever.com/downloads/SIMBL.pkg>, then **quit** System
+  Preferences (Cmd-Q, not just close the window) and reopen it.
 - **Validate the live refresh** with the repeatable matrix in `prefpane-test-runthrough.md` (human switches
   transports, agent reads the markers + device truth).
 
@@ -137,7 +159,7 @@ backup pointer is live; the updated package is deployed (`shipyard-cmake --build
    device and init-dict seeding doesn't stick for that key (revert the two seeds).
 
 3. **Does a Bluetooth-pane Rename land on the device?** Right-click the MT2 row → Rename → type a
-   distinctive name → Enter. The injected osax mirrors it onto the device: watch
+   distinctive name → Enter. The injected pane payload mirrors it onto the device: watch
    `grep name-mirror /var/log/system.log` for `writing onboard (0x55)` + `pushed … + cleared alias`,
    then confirm with `tools/re mt2-name` (report `0x55` = the typed name) and the Bluetooth pane showing
    it. It persists across power-cycles and follows the device to other Macs. Nothing writes the name
