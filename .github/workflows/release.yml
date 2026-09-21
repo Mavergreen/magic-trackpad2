@@ -98,6 +98,11 @@ jobs:
       - name: Record the pre-build tree
         run: sh "$SHIPYARD_SCRIPTS/assert-tree-clean.sh" --record
 
+      - name: Build out of tree
+        run: |
+          echo "MAVERICKS_BUILD_ROOT=$RUNNER_TEMP/mm-build" >> "$GITHUB_ENV"
+          echo "MT2_BUILD_DIR=$RUNNER_TEMP/mm-build/magic-trackpad2-cross" >> "$GITHUB_ENV"
+
       # The SDK cache key is the content of the script that pins the SDK: its URL, its SHA-256 and the
       # extract-time stub conversion all live in fetch_sdk.sh, so a change to any of them invalidates
       # the cache, and nothing else does. (Keying on what @v1 resolves to would miss nothing either,
@@ -165,13 +170,13 @@ jobs:
       - name: Cache the MacOSX10.9 SDK
         uses: actions/cache@v6
         with:
-          path: ${{ github.workspace }}/.mt2-sdk-cache
+          path: ${{ runner.temp }}/.mt2-sdk-cache
           key: macosx10.9-sdk-${{ steps.sdkkey.outputs.sum }}
 
       - name: Fetch + checksum-verify the MacOSX10.9 SDK
         id: sdk
         env:
-          MAVERICKS_SDK_CACHE: ${{ github.workspace }}/.mt2-sdk-cache
+          MAVERICKS_SDK_CACHE: ${{ runner.temp }}/.mt2-sdk-cache
         # Two statements, not echo "path=$(...)": inside an argument, a failing command substitution is
         # invisible -- echo succeeds, the step goes green with path= empty, and the failure surfaces
         # later as a confusing configure/kext error. That is how this step hid the package rename.
@@ -189,25 +194,25 @@ jobs:
 
       - name: Configure + build (x86_64 @ 10.9 userland + kext + updater)
         run: |
-          shipyard-cmake -S . -B build -DMT2_MACOSX_10_9_SDK="${{ steps.sdk.outputs.path }}"
-          shipyard-cmake --build build
-          echo "userland slice:"; lipo -info build/sbin/mt2_reenumerate
-          echo "kext:"; file build/VoodooInputMavericks.kext/Contents/MacOS/VoodooInputMavericks
+          shipyard-cmake -S . -B "$MT2_BUILD_DIR" -DMT2_MACOSX_10_9_SDK="${{ steps.sdk.outputs.path }}"
+          shipyard-cmake --build "$MT2_BUILD_DIR"
+          echo "userland slice:"; lipo -info "$MT2_BUILD_DIR/sbin/mt2_reenumerate"
+          echo "kext:"; file "$MT2_BUILD_DIR/VoodooInputMavericks.kext/Contents/MacOS/VoodooInputMavericks"
 
       - name: Kext cross-build equivalence gate (vs native 10.9 reference, fail-closed)
-        run: sh cmake/characterize_build.sh compare dist/characterization build
+        run: sh cmake/characterize_build.sh compare dist/characterization "$MT2_BUILD_DIR"
 
       - name: Unit tests (Rosetta)
         # Exclude test_re_bats: the `re` toolkit suite reverse-engineers 10.9 system
         # frameworks (MultitouchSupport / MTDeviceCreateListForDriverType, symbolicated
         # framework binaries) that don't exist on the macos-26 runner. It runs on the
         # 10.9 dev box; here we validate the cross-built product's logic + portable tooling.
-        run: shipyard-ctest --test-dir build --output-on-failure -E '^test_re_bats$'
+        run: shipyard-ctest --test-dir "$MT2_BUILD_DIR" --output-on-failure -E '^test_re_bats$'
 
       - name: Build .pkg (10.9.5 install floor)
         run: |
-          shipyard-cmake --build build --target pkg   # version derives from CMake MAVERICKS_VERSION
-          echo "floor check:"; pkgutil --expand "build/voodooinputmavericks-${{ steps.ver.outputs.version }}.pkg" /tmp/pkgx
+          shipyard-cmake --build "$MT2_BUILD_DIR" --target pkg   # version derives from CMake MAVERICKS_VERSION
+          echo "floor check:"; pkgutil --expand "$MT2_BUILD_DIR/voodooinputmavericks-${{ steps.ver.outputs.version }}.pkg" /tmp/pkgx
           grep -o 'os-version min="[0-9.]*"' /tmp/pkgx/Distribution
 
       - name: The build must not have written into the source tree
@@ -230,8 +235,8 @@ jobs:
           # release "v0.5.4", the form every prior hand-authored heading used.
           sh "$SHIPYARD_SCRIPTS/release-notes.sh" \
             --tag "${{ steps.ver.outputs.tag }}" --version "${{ steps.ver.outputs.tag }}" \
-            --product "Mavericks Trackpad 2" --min-os 10.9.5 --out build/RELEASE_NOTES.md
-          echo "=== RELEASE_NOTES.md ==="; cat build/RELEASE_NOTES.md
+            --product "Mavericks Trackpad 2" --min-os 10.9.5 --out "$MT2_BUILD_DIR/RELEASE_NOTES.md"
+          echo "=== RELEASE_NOTES.md ==="; cat "$MT2_BUILD_DIR/RELEASE_NOTES.md"
 
       - name: Sign the .pkg + generate the Sparkle appcast
         if: steps.ver.outputs.publish == 'true'
@@ -242,7 +247,7 @@ jobs:
           set -eu
           VER="${{ steps.ver.outputs.version }}"
           TAG="${{ steps.ver.outputs.tag }}"
-          PKG="build/voodooinputmavericks-$VER.pkg"
+          PKG="$MT2_BUILD_DIR/voodooinputmavericks-$VER.pkg"
           # printenv, not [ -n "$SPARKLE_PRIVATE_KEY" ]: the shell never expands the key, so no trace
           # (set -x, a debug re-run) can print it. grep -q . fails on unset and empty alike.
           printenv SPARKLE_PRIVATE_KEY | grep -q . || { echo "::error::SPARKLE_PRIVATE_KEY secret not set"; exit 1; }
@@ -254,13 +259,13 @@ jobs:
           # assert_update_trusted.sh, which verifies the signature against the SUPublicEDKey of the
           # updater ALREADY INSTALLED -- read from the live release's pkg via the live appcast, not from
           # this repo -- so a key installed clients would reject fails HERE, not on users' machines, and
-          # no appcast is written. build/RELEASE_NOTES.md (generated above) is inlined as the appcast
-          # <description> -- the very file that also becomes the GitHub Release body.
+          # no appcast is written. $MT2_BUILD_DIR/RELEASE_NOTES.md (generated above) is inlined as the
+          # appcast <description> -- the very file that also becomes the GitHub Release body.
           [ -f "$SHIPYARD_SCRIPTS/sign_and_appcast.sh" ] || { echo "::error::no sign_and_appcast.sh under SHIPYARD_SCRIPTS='$SHIPYARD_SCRIPTS'"; exit 1; }
           sh "$SHIPYARD_SCRIPTS/sign_and_appcast.sh" \
             --channel-title "Mavericks Trackpad 2" --version "$VER" --pkg-url "$URL" \
-            --notes-file "build/RELEASE_NOTES.md" --pkg "$PKG" --min-os 10.9.5 > build/appcast.xml
-          echo "=== appcast.xml ==="; cat build/appcast.xml
+            --notes-file "$MT2_BUILD_DIR/RELEASE_NOTES.md" --pkg "$PKG" --min-os 10.9.5 > "$MT2_BUILD_DIR/appcast.xml"
+          echo "=== appcast.xml ==="; cat "$MT2_BUILD_DIR/appcast.xml"
 
       # publish-release.yml attaches EVERY file in this artifact (bar RELEASE_NOTES.md) as a release
       # asset, so it holds exactly the pkg, and on a publishing run the appcast + notes -- nothing else.
@@ -270,9 +275,9 @@ jobs:
           name: voodooinputmavericks-pkg
           if-no-files-found: warn   # the .pkg always exists; appcast.xml + RELEASE_NOTES.md only when publishing
           path: |
-            build/voodooinputmavericks-${{ steps.ver.outputs.version }}.pkg
-            build/appcast.xml
-            build/RELEASE_NOTES.md
+            ${{ env.MT2_BUILD_DIR }}/voodooinputmavericks-${{ steps.ver.outputs.version }}.pkg
+            ${{ env.MT2_BUILD_DIR }}/appcast.xml
+            ${{ env.MT2_BUILD_DIR }}/RELEASE_NOTES.md
 
   # Before anything is published: no log of this run, and no file about to be released, carries a
   # piece of the signing key. publish-release.yml looks for this job's record on any signed release;

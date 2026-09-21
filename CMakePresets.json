@@ -1,17 +1,18 @@
 {
   "version": 6,
   "cmakeMinimumRequired": { "major": 3, "minor": 25, "patch": 0 },
+  "include": ["/usr/local/mavericks-shipyard/share/cmake/MavericksShipyard/mavericks-presets.json"],
   "configurePresets": [
     {
       "name": "native",
+      "inherits": "mavericks-native",
       "displayName": "native -- build the MT2 product on OS X 10.9",
-      "binaryDir": "${sourceDir}/build-native",
       "cacheVariables": { "MAVERICKS_EXPECTED_MODE": "native" }
     },
     {
       "name": "cross",
+      "inherits": "mavericks-cross",
       "displayName": "cross -- build the MT2 product for 10.9 on a modern host",
-      "binaryDir": "${sourceDir}/build-cross",
       "cacheVariables": { "MAVERICKS_EXPECTED_MODE": "cross" }
     }
   ],
