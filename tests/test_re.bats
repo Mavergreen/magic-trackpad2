@@ -1,4 +1,5 @@
 #!/usr/bin/env bats
+bats_require_minimum_version 1.5.0
 # Tests for tools/re — the reverse-engineering toolkit.
 #
 # Two levels:
@@ -265,7 +266,7 @@ EOF
   [ "$status" -eq 0 ]
   printf '%s\n' "$output" | grep -q "dev.modernmavericks.voodooinputmavericks.plist"
   printf '%s\n' "$output" | grep -q "dev.modernmavericks.voodooinputmavericks.linkstated.plist"
-  ! printf '%s\n' "$output" | grep -q "com.apple.unrelated"
+  run ! grep -q "com.apple.unrelated" <<< "$output"
 }
 
 @test "re_boot_owner says (none) instead of printing nothing" {
