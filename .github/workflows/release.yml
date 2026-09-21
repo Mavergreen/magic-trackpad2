@@ -95,6 +95,9 @@ jobs:
       - name: Install mavericks-shipyard
         uses: ModernMavericks/shipyard/.github/actions/install@v1
 
+      - name: Record the pre-build tree
+        run: sh "$SHIPYARD_SCRIPTS/assert-tree-clean.sh" --record
+
       # The SDK cache key is the content of the script that pins the SDK: its URL, its SHA-256 and the
       # extract-time stub conversion all live in fetch_sdk.sh, so a change to any of them invalidates
       # the cache, and nothing else does. (Keying on what @v1 resolves to would miss nothing either,
@@ -206,6 +209,9 @@ jobs:
           shipyard-cmake --build build --target pkg   # version derives from CMake MAVERICKS_VERSION
           echo "floor check:"; pkgutil --expand "build/voodooinputmavericks-${{ steps.ver.outputs.version }}.pkg" /tmp/pkgx
           grep -o 'os-version min="[0-9.]*"' /tmp/pkgx/Distribution
+
+      - name: The build must not have written into the source tree
+        run: sh "$SHIPYARD_SCRIPTS/assert-tree-clean.sh"
 
       # Generated once, straight into the artifact dir: this file becomes BOTH the appcast
       # <description> (inlined below) AND the GitHub Release body (publish-release.yml reads it
