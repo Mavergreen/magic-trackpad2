@@ -98,17 +98,17 @@ add_custom_target(linkstate-uninstall
 # one-time Sparkle fetch is cached). The updater host lives in mavericks-shipyard (templated
 # main.m/Info.plist); we configure it per product here.
 #
-# ED_PUBKEY is the ModernMavericks ORG signing key (/XQ+...), which the whole family is moving to, in
+# ED_PUBKEY is the Mavergreen ORG signing key (/XQ+...), which the whole family is moving to, in
 # place of this repo's own key (E8ZT...) that every release through v0.5.2 shipped. The first release
 # carrying it is a BRIDGE, and the order matters:
 #   1. Sign it with the CURRENT repo secret SPARKLE_PRIVATE_KEY -- the E8ZT key, which the updaters
 #      already installed trust. sign_and_appcast.sh's assert_update_trusted.sh checks exactly that
 #      (against the live release's updater) and notes that the next release must use the new key.
-#   2. Only after it is published, move the repo into the ModernMavericks org and delete the
+#   2. Only after it is published, move the repo into the Mavergreen org and delete the
 #      repo-level secret, so the org-level SPARKLE_PRIVATE_KEY (the /XQ+ private half) signs from then
 #      on. Signing the bridge with the org key instead would sign it with a key no installed updater
 #      trusts yet, and the trust check would refuse to write the appcast.
-# Done: v0.5.3 was the bridge, and the repo is now ModernMavericks/magic-trackpad2. FEED_URL follows
+# Done: v0.5.3 was the bridge, and the repo is now Mavergreen/magic-trackpad2. FEED_URL follows
 # it there; updaters installed from schmonz/mavericks-magic-trackpad2 reach the same feed through
 # GitHub's redirect until they update to a release carrying this URL.
 include(MavericksSparkle)
@@ -116,8 +116,8 @@ mavericks_add_updater_app(
   NAME Trackpad2Updater
   PRODUCT_NAME "Mavericks Trackpad 2"
   BUNDLE_ID dev.modernmavericks.Trackpad2Updater
-  FEED_URL "https://github.com/ModernMavericks/magic-trackpad2/releases/latest/download/appcast.xml"
-  ED_PUBKEY "/XQ+fNmP4nxdj9jnKmJDwL8rnsKYz6Kg5X61REAIqkI="   # ModernMavericks org key; see the bridge note above
+  FEED_URL "https://github.com/Mavergreen/magic-trackpad2/releases/latest/download/appcast.xml"
+  ED_PUBKEY "/XQ+fNmP4nxdj9jnKmJDwL8rnsKYz6Kg5X61REAIqkI="   # Mavergreen org key; see the bridge note above
   ICON "${CMAKE_CURRENT_SOURCE_DIR}/voodooinputmavericks_updater/Trackpad2Updater.icns"
   VERSION "${MAVERICKS_VERSION}"
   AUTO_CHECK false

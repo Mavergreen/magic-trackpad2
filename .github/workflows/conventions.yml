@@ -12,4 +12,4 @@ on:
 
 jobs:
   conventions:
-    uses: ModernMavericks/shipyard/.github/workflows/family-conventions.yml@v1
+    uses: Mavergreen/shipyard/.github/workflows/family-conventions.yml@v1

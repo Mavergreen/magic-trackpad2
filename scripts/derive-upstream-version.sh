@@ -3,7 +3,7 @@
 #
 #   scripts/derive-upstream-version.sh      ->   0.5.2
 #
-# magic-trackpad2 is its OWN upstream (original ModernMavericks code, not a port), so it has no
+# magic-trackpad2 is its OWN upstream (original Mavergreen code, not a port), so it has no
 # -mavericks.N axis: its "upstream version" is simply its own semver, hand-bumped in CMakeLists.txt
 # and released under the tag v<version>. The pkg name, pkgbuild --version and the updater's
 # CFBundleVersion all derive from the same CMake variable, so reading it here -- rather than keeping

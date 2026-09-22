@@ -71,7 +71,7 @@ fi
 
 # Scheduled background update check (per-user LaunchAgent). Independent of the prefpane route above.
 # Both the plist and this load logic are rendered by mavericks-shipyard's stage_updater.sh, so all
-# the ModernMavericks products load their agent the same way instead of each hand-rolling it. The
+# the Mavergreen products load their agent the same way instead of each hand-rolling it. The
 # snippet ships beside this script and only exists in a Sparkle build, so its absence is normal and
 # means "this build has no updater". It is written to be sourced: no `exit`, MAV_-prefixed variables.
 AGENT_LOAD="$(dirname "$0")/agent-load.sh"

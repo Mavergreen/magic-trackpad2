@@ -1,5 +1,5 @@
 #   usage: . build/msc.sh
-#          Sourced by a ModernMavericks product's build scripts: locates shipyard's scripts as
+#          Sourced by a Mavergreen product's build scripts: locates shipyard's scripts as
 #          $SHIPYARD and exports SHIPYARD_SCRIPTS. In CI, install@v1 has already exported
 #          SHIPYARD_SCRIPTS; anywhere else this asks shipyard-cmake -- the only cmake that configures
 #          against shipyard -- where find_package(MavericksShipyard) lands, so a CMAKE_PREFIX_PATH

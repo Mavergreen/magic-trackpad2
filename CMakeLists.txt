@@ -29,7 +29,7 @@ project(mt2 VERSION ${MAVERICKS_VERSION_NUMERIC} LANGUAGES C CXX)
 # and the 10.9 compat helpers. Install the mavericks-shipyard pkg once (CI uses
 # its install@v1 action); it provides shipyard-cmake, the only cmake this
 # find_package accepts, and shipyard-cmake supplies the prefix itself -- so no
-# CMAKE_PREFIX_PATH here. See github.com/ModernMavericks/shipyard.
+# CMAKE_PREFIX_PATH here. See github.com/Mavergreen/shipyard.
 # Must come after project() so CMAKE_<LANG>_COMPILER_ID is populated for the gate.
 find_package(MavericksShipyard REQUIRED)
 set(MAVERICKS_REQUIRE_LANGS C CXX)   # the kext (C++/IOKit) + userland (C) both must be AppleClang

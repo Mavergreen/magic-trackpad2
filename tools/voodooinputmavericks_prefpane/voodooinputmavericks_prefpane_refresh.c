@@ -669,7 +669,7 @@ static void mavericks_open_github_imp(id self, SEL _cmd, id sender) {
     id ws = wsCls ? ((id (*)(Class, SEL))objc_msgSend)(wsCls, sel_registerName("sharedWorkspace")) : NULL;
     Class urlCls = objc_getClass("NSURL");
     id url = urlCls ? ((id (*)(Class, SEL, id))objc_msgSend)(urlCls, sel_registerName("URLWithString:"),
-                        (id)CFSTR("https://github.com/ModernMavericks/magic-trackpad2")) : NULL;
+                        (id)CFSTR("https://github.com/Mavergreen/magic-trackpad2")) : NULL;
     if (ws && url) ((signed char (*)(id, SEL, id))objc_msgSend)(ws, sel_registerName("openURL:"), url);
     LOG("about: View on GitHub clicked");
 }

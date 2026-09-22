@@ -25,7 +25,7 @@ name: release
 # AUTHENTICITY / CORRECTNESS of the cross-built kext rests on two things, no old
 # Xcode required:
 #   1. the SDK is pinned by SHA-256 in shipyard's fetch_sdk.sh (integrity;
-#      from ModernMavericks/shipyard, consumed at @v1), and
+#      from Mavergreen/shipyard, consumed at @v1), and
 #   2. the equivalence gate (cmake/characterize_build.sh compare) proves the
 #      cross-built kext is identical -- in undefined+defined external symbol sets,
 #      KPI deps, and arch -- to the trusted native 10.9.5 build committed in
@@ -93,7 +93,7 @@ jobs:
       # was renamed from MavericksSharedCMake. @v1 like every sibling: Renovate's github-actions
       # manager tracks the moving major tag.
       - name: Install mavericks-shipyard
-        uses: ModernMavericks/shipyard/.github/actions/install@v1
+        uses: Mavergreen/shipyard/.github/actions/install@v1
 
       - name: Record the pre-build tree
         run: sh "$SHIPYARD_SCRIPTS/assert-tree-clean.sh" --record
@@ -290,7 +290,7 @@ jobs:
     permissions:
       actions: read     # this run's job logs
       contents: read
-    uses: ModernMavericks/shipyard/.github/workflows/scan-for-key.yml@v1
+    uses: Mavergreen/shipyard/.github/workflows/scan-for-key.yml@v1
     with:
       artifact: voodooinputmavericks-pkg
     secrets:
@@ -307,7 +307,7 @@ jobs:
     if: needs.build-macos.outputs.publish == 'true'
     permissions:
       contents: write
-    uses: ModernMavericks/shipyard/.github/workflows/publish-release.yml@v1
+    uses: Mavergreen/shipyard/.github/workflows/publish-release.yml@v1
     with:
       version: ${{ needs.build-macos.outputs.tag }}
       artifact: voodooinputmavericks-pkg
