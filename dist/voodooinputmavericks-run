@@ -26,6 +26,7 @@ HEALTHY_DELAY="${MT2D_HEALTHY_DELAY:-20}"
 IOCLASSCOUNT="${MT2D_IOCLASSCOUNT:-ioclasscount}"
 KEXTLOAD="${MT2D_KEXTLOAD:-kextload}"
 KEXTUNLOAD="${MT2D_KEXTUNLOAD:-kextunload}"
+KEXTSTAT="${MT2D_KEXTSTAT:-kextstat}"
 RECOVER_TRIES="${MT2D_RECOVER_TRIES:-3}"
 # Baseband bounce (close->open) that forces a connected BT MT2 to re-open BOTH L2CAP channels so our
 # reader wins them (BT=2). Overridable so the unit test can stub it. Runs at the session-takeover, where
@@ -66,7 +67,7 @@ recover_full() {
         fi
         i=$((i+1))
     done
-    "$KEXTUNLOAD" -b dev.modernmavericks.VoodooInputMavericks 2>/dev/null || true
+    "$KEXTUNLOAD" -b dev.mavergreen.VoodooInputMavericks 2>/dev/null || true
     log "RECOVERY EXHAUSTED after $RECOVER_TRIES tries: leaving generic HID (cursor only, no gestures)"
     return 1
 }
@@ -124,6 +125,21 @@ if [ "$STATE" = "trying" ]; then
     # loading VoodooInputMavericks. Do NOT reload it; avoid a boot-crash loop.
     log "prior boot did not confirm healthy; NOT loading VoodooInputMavericks (run 'voodooinputmavericks-run --reset' to retry). Use another pointing device."
     [ "${MT2D_DRYRUN:-0}" = "1" ] && { echo "MODE=skip"; echo "STATE=$(cat "$STATE_FILE" 2>/dev/null)"; }
+    exit 0
+fi
+
+# ONE-TIME MIGRATION off the ModernMavericks identity (flag day 2026-09-22): the kext's bundle id moved
+# dev.modernmavericks.VoodooInputMavericks -> dev.mavergreen.VoodooInputMavericks. An update never hot-swaps
+# a live driver (Model A, see the postinstall), so after the flag-day update the PRE-RENAME kext keeps
+# driving the trackpad until the next boot. Before the rename, kextload of the new kext over the old one
+# failed harmlessly on the shared bundle id; with two ids nothing stops it, and two drivers would claim
+# the one trackpad. So while the old id is resident, do not load -- a logout/login before the restart
+# lands here. The new kext loads at the next boot, when nothing old is resident. The sentinel is left
+# alone: nothing was attempted, so there is nothing for the brick guard to judge.
+# DELETABLE once no pre-flag-day install survives (see shipyard SKILL.md "Consolidation backlog").
+if $KEXTSTAT -l -b dev.modernmavericks.VoodooInputMavericks 2>/dev/null | grep -q 'dev\.modernmavericks\.VoodooInputMavericks'; then
+    log "pre-rename driver dev.modernmavericks.VoodooInputMavericks is still resident; NOT loading the renamed one beside it (restart to finish the update)"
+    [ "${MT2D_DRYRUN:-0}" = "1" ] && { echo "MODE=skip-prerename"; echo "STATE=$(cat "$STATE_FILE" 2>/dev/null)"; }
     exit 0
 fi
 

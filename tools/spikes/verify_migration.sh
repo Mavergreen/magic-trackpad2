@@ -37,11 +37,26 @@ for p in /usr/local/lib/mt2d /usr/local/share/mt2d /usr/local/sbin/mt2d-run /usr
     if [ -e "$p" ]; then say FAIL "present: $p"; fail=1; else say ok "absent: $p"; fi
 done
 
+echo "--- 4b. no ModernMavericks-identity residue (flag day 2026-09-22) ---"
+for lbl in dev.modernmavericks.voodooinputmavericks dev.modernmavericks.voodooinputmavericks.linkstated; do
+    if launchctl list 2>/dev/null | grep -q "$lbl\$"; then say FAIL "still loaded: $lbl"; fail=1; else say ok "gone: $lbl"; fi
+done
+old_plists=$(ls /Library/LaunchDaemons/dev.modernmavericks.voodooinputmavericks* \
+                /Library/LaunchAgents/dev.modernmavericks.voodooinputmavericks* 2>/dev/null)
+if [ -n "$old_plists" ]; then say FAIL "pre-rename plists remain:"; echo "$old_plists"; fail=1; else say ok "no pre-rename plists"; fi
+[ -e "/Library/Application Support/ModernMavericks/Trackpad2Updater.app" ] \
+    && { say FAIL "pre-rename updater app remains"; fail=1; } || say ok "no pre-rename updater app"
+pkgutil --pkgs 2>/dev/null | grep -qx dev.modernmavericks.voodooinputmavericks \
+    && { say FAIL "pre-rename receipt remains"; fail=1; } || say ok "no pre-rename receipt"
+if kextstat 2>/dev/null | grep -q "dev.modernmavericks.VoodooInputMavericks"; then
+    say WARN "pre-rename kext still resident -- expected until the restart that finishes the update"
+fi
+
 echo "--- 5. new identity installed ---"
 [ -x /usr/local/sbin/voodooinputmavericks-run ] && say ok "loader present" || { say FAIL "loader /usr/local/sbin/voodooinputmavericks-run missing"; fail=1; }
-ls /Library/LaunchDaemons/dev.modernmavericks.voodooinputmavericks*.plist >/dev/null 2>&1 \
+ls /Library/LaunchDaemons/dev.mavergreen.voodooinputmavericks*.plist >/dev/null 2>&1 \
     && say ok "new LaunchDaemons present" || { say FAIL "new LaunchDaemons missing"; fail=1; }
-if kextstat 2>/dev/null | grep -qi "dev.modernmavericks.VoodooInputMavericks"; then
+if kextstat 2>/dev/null | grep -qi "dev.mavergreen.VoodooInputMavericks"; then
     say ok "new kext resident"
 else
     say WARN "new kext not resident yet (loads at login via the session trigger — re-run after login + a touch)"

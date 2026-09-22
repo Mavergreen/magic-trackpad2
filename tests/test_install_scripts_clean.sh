@@ -17,7 +17,7 @@ bad()  { echo "FAIL: $1"; fail=1; }
 [ -f "$POST" ] || bad "postinstall missing"
 
 # Kept: preinstall unloads the current daemons before the payload replaces them.
-for lbl in dev.modernmavericks.voodooinputmavericks dev.modernmavericks.voodooinputmavericks.linkstated; do
+for lbl in dev.mavergreen.voodooinputmavericks dev.mavergreen.voodooinputmavericks.linkstated; do
   if grep -q "launchctl unload /Library/LaunchDaemons/$lbl.plist" "$PRE"; then
     pass "preinstall unloads $lbl"
   else

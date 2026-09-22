@@ -8,7 +8,7 @@
 set -e
 
 GESTURE=/usr/local/lib/voodooinputmavericks/VoodooInputMavericks.kext
-PLIST=/Library/LaunchDaemons/dev.modernmavericks.voodooinputmavericks.plist
+PLIST=/Library/LaunchDaemons/dev.mavergreen.voodooinputmavericks.plist
 STATE=/var/db/voodooinputmavericks-boot.state
 
 chown -R root:wheel "$GESTURE"
@@ -45,7 +45,7 @@ fi
 
 # USB->BT handoff daemon: wakes deep-idle Bluetooth on cable unplug (no click). Root LaunchDaemon,
 # runs regardless of GUI session. Best-effort — a UX feature, never fail the install on it.
-HANDOFF=/Library/LaunchDaemons/dev.modernmavericks.voodooinputmavericks.linkstated.plist
+HANDOFF=/Library/LaunchDaemons/dev.mavergreen.voodooinputmavericks.linkstated.plist
 chmod +x /usr/local/libexec/mt2_linkstated 2>/dev/null || true
 launchctl unload "$HANDOFF" 2>/dev/null || true
 launchctl load -w "$HANDOFF" 2>/dev/null || true
@@ -79,6 +79,13 @@ if [ -f "$AGENT_LOAD" ]; then
     . "$AGENT_LOAD"
 fi
 
+# ONE-TIME MIGRATION off the ModernMavericks identity (flag day 2026-09-22): forget the pre-rename pkg
+# receipt and carry each user's updater preferences to the renamed domain. (The old update-check agent
+# and updater app are retired by the agent-load snippet just above, which is why it is sourced with this
+# script's own arguments intact: it reads the target volume from $3.) DELETABLE once no pre-flag-day
+# install survives (see shipyard SKILL.md "Consolidation backlog").
+sh "$(dirname "$0")/flag-day-migration.sh" post "$3" || true
+
 # Connect/disconnect bezel: our BezelServices plugin (installed above) reuses Apple's OWN trackpad art,
 # copied here from the co-resident AppleBluetoothMultitouch.plugin — we ship no art (nothing Apple-derived
 # in our payload; we're a compatibility layer presenting the MT2 as a genuine Apple trackpad). Best-effort;
@@ -92,7 +99,7 @@ cp "$BEZEL_SRC/MagicTrackpad.icns" "$BEZEL_DST/MavericksTrackpad.icns" 2>/dev/nu
 # Updater icon: same rule, same source. We ship a neutral placeholder and borrow Apple's Magic
 # Trackpad art from the machine at install time, so no Apple artwork travels in our payload. The
 # updater is what a user sees when an update is offered, so it should look like the device it drives.
-UPD_ICON="/Library/Application Support/ModernMavericks/Trackpad2Updater.app/Contents/Resources/Trackpad2Updater.icns"
+UPD_ICON="/Library/Application Support/Mavergreen/Trackpad2Updater.app/Contents/Resources/Trackpad2Updater.icns"
 [ -f "$UPD_ICON" ] && cp "$BEZEL_SRC/MagicTrackpad.icns" "$UPD_ICON" 2>/dev/null || true
 
 exit 0

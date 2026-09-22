@@ -26,11 +26,11 @@
     </allowed-os-versions>
     <options customize="never" require-scripts="true"/>
     <choices-outline>
-        <line choice="default"><line choice="dev.modernmavericks.voodooinputmavericks"/></line>
+        <line choice="default"><line choice="dev.mavergreen.voodooinputmavericks"/></line>
     </choices-outline>
     <choice id="default"/>
-    <choice id="dev.modernmavericks.voodooinputmavericks" visible="false">
-        <pkg-ref id="dev.modernmavericks.voodooinputmavericks"/>
+    <choice id="dev.mavergreen.voodooinputmavericks" visible="false">
+        <pkg-ref id="dev.mavergreen.voodooinputmavericks"/>
     </choice>
-    <pkg-ref id="dev.modernmavericks.voodooinputmavericks" version="0" onConclusion="none">voodooinputmavericks-component.pkg</pkg-ref>
+    <pkg-ref id="dev.mavergreen.voodooinputmavericks" version="0" onConclusion="none">voodooinputmavericks-component.pkg</pkg-ref>
 </installer-gui-script>

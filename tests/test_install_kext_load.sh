@@ -7,7 +7,7 @@
 # leaves the old one driving, and notifies restart; the new kext applies cleanly at the next boot.
 set -u
 D="$(dirname "$0")/.."
-PLIST="$D/dist/dev.modernmavericks.voodooinputmavericks.plist"
+PLIST="$D/dist/dev.mavergreen.voodooinputmavericks.plist"
 POST="$D/dist/scripts/postinstall"
 PRE="$D/dist/scripts/preinstall"
 fail=0

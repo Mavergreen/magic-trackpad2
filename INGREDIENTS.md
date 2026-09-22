@@ -39,5 +39,11 @@ an upstream this product repackages.
 
 ## Conformance deviations
 
-_None declared._ This product has not adopted `check-artifact-conformance.sh`. Its version scheme
-(`vX.Y.Z`, self-upstream) would need a declared deviation from `<upstream>-mavericks.N` when it does.
+- install-path:Library/Application?Support/Apple/BezelServices/MavericksMultitouch.plugin/*: BezelServices loads its connect/disconnect OSD plugins only from /Library/Application Support/Apple/BezelServices, so the trackpad's bezel plugin cannot live anywhere else
+- scheme: magic-trackpad2 is its own upstream (original code, no one else's release to repackage), so its version is plain vX.Y.Z with no -mavericks.N axis
+
+`release.yml` does not run `check-artifact-conformance.sh` yet; these are what a dry run of it over
+`voodooinputmavericks-0.5.4.pkg` needs, declared so that adopting it is one step. Everything else the
+pkg installs is `dev.mavergreen.*` or under `usr/local/`, `Library/Application Support/Mavergreen/`, or a
+`dev.mavergreen.*` launchd plist. (The SIMBL pane bundle lands in `Library/Application Support/SIMBL/Plugins`
+too, but the postinstall copies it there from `usr/local/share/`; it is not in the payload.)

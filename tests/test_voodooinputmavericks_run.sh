@@ -7,6 +7,9 @@ WRAPPER="$(dirname "$0")/../dist/voodooinputmavericks-run"
 TMP="$(mktemp -d -t voodooinputmavericks_run_test)"
 trap 'rm -rf "$TMP"' EXIT
 fail=0
+# No pre-rename kext resident, by default: the real kextstat answers for whatever box runs this (a dev box
+# usually has our driver loaded), and the flag-day guard below would then skip every load under test.
+MT2D_KEXTSTAT=true; export MT2D_KEXTSTAT
 
 check() {
     desc="$1"; want_mode="$2"; want_state="$3"; init_state="$4"
@@ -38,6 +41,26 @@ sguard() {
 }
 sguard "console=root (login window) -> skip-nosession" skip-nosession root
 sguard "console=user (logged in)    -> full"           full            testuser
+
+# Flag-day guard (ONE-TIME MIGRATION off the ModernMavericks identity, 2026-09-22; DELETABLE with it): while
+# the PRE-RENAME kext (dev.modernmavericks.VoodooInputMavericks) is resident -- an update installed, no
+# restart yet -- the renamed kext must NOT be loaded beside it (two drivers, one trackpad), and the sentinel
+# must stay untouched (nothing was attempted). Any other resident kext must not trip it.
+pr() {
+    desc="$1"; want_mode="$2"; kextstat_line="$3"
+    sf="$TMP/pr"; echo ok > "$sf"
+    printf '#!/bin/sh\necho "%s"\n' "$kextstat_line" > "$TMP/kextstat_stub"; chmod +x "$TMP/kextstat_stub"
+    out="$(MT2D_KEXTSTAT="$TMP/kextstat_stub" MT2D_STATE_FILE="$sf" MT2D_DRYRUN=1 MT2D_STAT_CONSOLE="echo testuser" "$WRAPPER" 2>/dev/null)"
+    got_mode="$(echo "$out" | sed -n 's/^MODE=//p')"; got_state="$(cat "$sf")"
+    want_state=trying; [ "$want_mode" = skip-prerename ] && want_state=ok
+    if [ "$got_mode" = "$want_mode" ] && [ "$got_state" = "$want_state" ]; then echo "PASS: $desc"
+    else echo "FAIL: $desc (mode=$got_mode want $want_mode; state=$got_state want $want_state)"; fail=1; fi
+}
+pr "pre-rename kext resident -> skip-prerename, sentinel untouched" skip-prerename \
+   "  121    0 0xffffff7f81dd6000 0x17000    0x17000    dev.modernmavericks.VoodooInputMavericks (0.5.4) <119 98 35 29 5 4 3 1>"
+pr "renamed kext resident    -> full (not the guard's business)"   full \
+   "  121    0 0xffffff7f81dd6000 0x17000    0x17000    dev.mavergreen.VoodooInputMavericks (0.6.0) <119 98 35 29 5 4 3 1>"
+pr "nothing resident         -> full"                              full ""
 
 # --reset writes ok regardless of prior state
 sf="$TMP/state"; echo trying > "$sf"

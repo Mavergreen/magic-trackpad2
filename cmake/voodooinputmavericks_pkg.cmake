@@ -28,8 +28,8 @@ set(_UPD_PKG_STAGE
   COMMAND sh ${MavericksShipyard_SCRIPTS}/stage_updater.sh
     --stage ${PKGROOT}
     --app ${CMAKE_BINARY_DIR}/Trackpad2Updater.app
-    --app-dir "/Library/Application Support/ModernMavericks"
-    --agent-label dev.modernmavericks.voodooinputmavericks.updatecheck
+    --app-dir "/Library/Application Support/Mavergreen"
+    --agent-label dev.mavergreen.voodooinputmavericks.updatecheck
     --snippet-out ${PKG_SCRIPTS}/agent-load.sh)
 set(_UPD_PKG_DEP Trackpad2Updater)
 add_custom_target(pkg
@@ -45,7 +45,7 @@ add_custom_target(pkg
   COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_BINARY_DIR}/sbin/mt2_reenumerate ${PKGROOT}/usr/local/sbin/
   COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_SOURCE_DIR}/dist/voodooinputmavericks-run        ${PKGROOT}/usr/local/sbin/
   COMMAND chmod +x ${PKGROOT}/usr/local/sbin/voodooinputmavericks-run
-  COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_SOURCE_DIR}/dist/dev.modernmavericks.voodooinputmavericks.plist ${PKGROOT}/Library/LaunchDaemons/
+  COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_SOURCE_DIR}/dist/dev.mavergreen.voodooinputmavericks.plist ${PKGROOT}/Library/LaunchDaemons/
   # Login-screen basic HID: the session-start trigger + the per-user LaunchAgent that touches it. The
   # voodooinputmavericks daemon WatchPaths this file (WatchPaths-only, no RunAtLoad); the agent touches it at login so
   # voodooinputmavericks-run runs post-session — the sole path that loads. File is world-writable so any Aqua session can
@@ -54,13 +54,13 @@ add_custom_target(pkg
   COMMAND ${CMAKE_COMMAND} -E touch ${PKGROOT}/usr/local/var/voodooinputmavericks/session.trigger
   COMMAND chmod 666 ${PKGROOT}/usr/local/var/voodooinputmavericks/session.trigger
   COMMAND ${CMAKE_COMMAND} -E make_directory ${PKGROOT}/Library/LaunchAgents
-  COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_SOURCE_DIR}/dist/dev.modernmavericks.voodooinputmavericks.session.plist ${PKGROOT}/Library/LaunchAgents/
+  COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_SOURCE_DIR}/dist/dev.mavergreen.voodooinputmavericks.session.plist ${PKGROOT}/Library/LaunchAgents/
   # Prefpane live-refresh: shipped ONLY as a SIMBL plugin (staged below). The postinstall installs it into
   # the SIMBL Plugins dir; if the target has no SIMBL it points the user at mavericksforever.com/SIMBL.pkg.
   COMMAND ${CMAKE_COMMAND} -E make_directory ${PKGROOT}/usr/local/libexec
   # USB->BT handoff daemon (wakes BT on cable unplug, no click): its watcher binary + a root LaunchDaemon.
   COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_BINARY_DIR}/sbin/mt2_linkstated ${PKGROOT}/usr/local/libexec/
-  COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_SOURCE_DIR}/dist/dev.modernmavericks.voodooinputmavericks.linkstated.plist ${PKGROOT}/Library/LaunchDaemons/
+  COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_SOURCE_DIR}/dist/dev.mavergreen.voodooinputmavericks.linkstated.plist ${PKGROOT}/Library/LaunchDaemons/
   COMMAND ${CMAKE_COMMAND} -E make_directory ${PKGROOT}/Library/LaunchAgents
   # Stage the SIMBL plugin bundle in a holding area; postinstall installs it into the SIMBL Plugins dir.
   COMMAND ${CMAKE_COMMAND} -E make_directory ${PKGROOT}/usr/local/share/voodooinputmavericks
@@ -84,7 +84,7 @@ add_custom_target(pkg
   # mavericks-shipyard/scripts/build_component_pkg.sh.
   COMMAND sh ${MavericksShipyard_SCRIPTS}/build_component_pkg.sh
           --root ${PKGROOT} --scripts ${PKG_SCRIPTS}
-          --identifier dev.modernmavericks.voodooinputmavericks --version ${MAVERICKS_PKG_VERSION}
+          --identifier dev.mavergreen.voodooinputmavericks --version ${MAVERICKS_PKG_VERSION}
           --install-location / --out ${CMAKE_BINARY_DIR}/voodooinputmavericks-component.pkg
   COMMAND productbuild --distribution ${CMAKE_SOURCE_DIR}/dist/distribution.xml
           --resources ${CMAKE_SOURCE_DIR}/dist/resources

@@ -248,7 +248,7 @@ EOF
 # --- deployed: boot owner -----------------------------------------------------
 # Regression (2026-09-20): this section printed a BLANK -- which reads as "fine" --
 # for two independent reasons. (1) The pattern was the pre-rename `schmonz.*`, so it
-# stopped matching when the daemons became dev.modernmavericks.*. (2) The `|| echo
+# stopped matching when the daemons became dev.mavergreen.*. (2) The `|| echo
 # "(none)"` fallback could never fire: the exit status of `ls | grep | sed` is sed's,
 # which is 0 even when grep matched nothing. A diagnostic that silently prints nothing
 # is worse than one that errors, so the owner listing is its own testable helper and
@@ -259,13 +259,13 @@ EOF
 @test "re_boot_owner lists our current-namespace boot daemons" {
   load_re
   d="$BATS_TMPDIR/bo_current"; rm -rf "$d"; mkdir -p "$d"
-  touch "$d/dev.modernmavericks.voodooinputmavericks.plist" \
-        "$d/dev.modernmavericks.voodooinputmavericks.linkstated.plist" \
+  touch "$d/dev.mavergreen.voodooinputmavericks.plist" \
+        "$d/dev.mavergreen.voodooinputmavericks.linkstated.plist" \
         "$d/com.apple.unrelated.plist"
   run re_boot_owner "$d"
   [ "$status" -eq 0 ]
-  printf '%s\n' "$output" | grep -q "dev.modernmavericks.voodooinputmavericks.plist"
-  printf '%s\n' "$output" | grep -q "dev.modernmavericks.voodooinputmavericks.linkstated.plist"
+  printf '%s\n' "$output" | grep -q "dev.mavergreen.voodooinputmavericks.plist"
+  printf '%s\n' "$output" | grep -q "dev.mavergreen.voodooinputmavericks.linkstated.plist"
   run ! grep -q "com.apple.unrelated" <<< "$output"
 }
 

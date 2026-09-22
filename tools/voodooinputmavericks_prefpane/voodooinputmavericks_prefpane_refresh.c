@@ -67,7 +67,7 @@ extern CFDictionaryRef OSKextCopyLoadedKextInfo(CFArrayRef kextIdentifiers, CFAr
 #endif
 
 /* Sparkle + the daily auto-check agent read this key from the updater's own prefs domain. */
-#define MAVERICKS_UPDATER_DOMAIN CFSTR("dev.modernmavericks.Trackpad2Updater")
+#define MAVERICKS_UPDATER_DOMAIN CFSTR("dev.mavergreen.Trackpad2Updater")
 
 /* ============================================================================================
  * 1. GENERIC HELPERS — objc dispatch shims + core cross-section state
@@ -91,7 +91,7 @@ static int responds(id obj, SEL s) {
  * on-device 2026-07-06: Autoupdate stuck waiting on a host pid that had already exited). The updater is
  * now a normal foreground app (not LSUIElement), so `open` also brings its Sparkle dialog to the front. */
 static void mavericks_launch_updater(void) {
-    const char *app = "/Library/Application Support/ModernMavericks/Trackpad2Updater.app";
+    const char *app = "/Library/Application Support/Mavergreen/Trackpad2Updater.app";
     if (access(app, F_OK) != 0) { LOG("updater: %s not installed", app); return; }
     /* --args --user: this is an EXPLICIT summon, so the updater runs its interactive check and reports
      * status. Without it the opt-in updater treats the launch as a silent probe and shows nothing. */
@@ -790,7 +790,7 @@ static id mavericks_make_button(CGRect frame, CFStringRef title, SEL action) {
  * to compile-baked. CF-only (no ObjC syntax) so it stays GC-neutral. */
 static CFStringRef mavericks_installed_version_copy(void) {
     CFURLRef url = CFURLCreateWithFileSystemPath(kCFAllocatorDefault,
-        CFSTR("/Library/Application Support/ModernMavericks/Trackpad2Updater.app/Contents/Info.plist"),
+        CFSTR("/Library/Application Support/Mavergreen/Trackpad2Updater.app/Contents/Info.plist"),
         kCFURLPOSIXPathStyle, false);
     if (!url) return NULL;
     CFReadStreamRef s = CFReadStreamCreateWithFile(kCFAllocatorDefault, url);
@@ -824,10 +824,10 @@ static void mavericks_version_cstr(char *buf, unsigned long n) {
 
 static char gAboutVer[48] = "";   /* version currently shown in the About link (change-detect for refresh) */
 
-/* The CURRENTLY LOADED kext's CFBundleVersion (the version actually running), via OSKext. Returns 1 and
- * fills buf on success; 0 if the kext isn't loaded / version unknown. CF-only, GC-neutral. */
-static int mavericks_resident_kext_version(char *buf, unsigned long n) {
-    CFStringRef bid = CFSTR("dev.modernmavericks.VoodooInputMavericks");
+/* The CURRENTLY LOADED CFBundleVersion of the kext with bundle id `bid` (the version actually running),
+ * via OSKext. Returns 1 and fills buf on success; 0 if it isn't loaded / version unknown. CF-only,
+ * GC-neutral. */
+static int mavericks_loaded_kext_version(CFStringRef bid, char *buf, unsigned long n) {
     CFArrayRef ids = CFArrayCreate(kCFAllocatorDefault, (const void **)&bid, 1, &kCFTypeArrayCallBacks);
     if (!ids) return 0;
     CFDictionaryRef info = OSKextCopyLoadedKextInfo(ids, NULL);
@@ -843,6 +843,22 @@ static int mavericks_resident_kext_version(char *buf, unsigned long n) {
         CFRelease(info);
     }
     return got;
+}
+
+/* Our kext, under its current identity. */
+static int mavericks_resident_kext_version(char *buf, unsigned long n) {
+    return mavericks_loaded_kext_version(CFSTR("dev.mavergreen.VoodooInputMavericks"), buf, n);
+}
+
+/* ONE-TIME MIGRATION off the ModernMavericks identity (flag day 2026-09-22): the kext's bundle id moved
+ * dev.modernmavericks.VoodooInputMavericks -> dev.mavergreen.VoodooInputMavericks. An update is staged, not
+ * hot-swapped (Model A), so until the next boot the RESIDENT driver is the pre-rename one, and a lookup by
+ * the new id alone finds nothing -- which would silently drop the "Restart to update" nudge for exactly
+ * the update that most needs it. The old id resident at all means a restart is pending.
+ * DELETABLE once no pre-flag-day install survives (see shipyard SKILL.md "Consolidation backlog"). */
+static int mavericks_pre_rename_kext_resident(void) {
+    char v[48];
+    return mavericks_loaded_kext_version(CFSTR("dev.modernmavericks.VoodooInputMavericks"), v, sizeof v);
 }
 
 /* The ON-DISK kext's CFBundleVersion (what will load at the next boot) — read straight from the staged
@@ -874,7 +890,7 @@ static int mavericks_ondisk_kext_version(char *buf, unsigned long n) {
 /* Is a staged update pending a restart? True when the ON-DISK kext version differs from the RESIDENT one
  * — Model A stages the new kext on disk and it loads at the next boot. Fills target with the on-disk
  * version (what you'd update TO). If either version is unreadable, don't nag. A dev/QA override forces it:
- *     defaults write dev.modernmavericks.Trackpad2Updater MT2RestartBannerTest -bool YES
+ *     defaults write dev.mavergreen.Trackpad2Updater MT2RestartBannerTest -bool YES
  * CF-only, GC-neutral. */
 static int mavericks_restart_pending(char *target, unsigned long tn) {
     char ondisk[48], resident[48];
@@ -884,6 +900,7 @@ static int mavericks_restart_pending(char *target, unsigned long tn) {
     int forced = (t && CFGetTypeID(t) == CFBooleanGetTypeID() && CFBooleanGetValue((CFBooleanRef)t));
     if (t) CFRelease(t);
     if (forced) { snprintf(target, tn, "%s", haveOnDisk ? ondisk : "the new version"); return 1; }
+    if (haveOnDisk && mavericks_pre_rename_kext_resident()) { snprintf(target, tn, "%s", ondisk); return 1; }
     if (!haveOnDisk || !mavericks_resident_kext_version(resident, sizeof resident)) return 0;
     if (strcmp(ondisk, resident) == 0) return 0;
     snprintf(target, tn, "%s", ondisk);

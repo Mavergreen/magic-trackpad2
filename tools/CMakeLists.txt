@@ -85,7 +85,7 @@ add_custom_target(prefpane-refresh-simbl-uninstall
 # USB-appear hidd gesture-kick, shutdown quiesce (see the mt2_linkstated.m header). Reuses the target.
 add_custom_target(linkstate-install
   COMMAND sh ${CMAKE_SOURCE_DIR}/cmake/dev_linkstated.sh install
-          ${CMAKE_BINARY_DIR}/sbin/mt2_linkstated ${CMAKE_SOURCE_DIR}/dist/dev.modernmavericks.voodooinputmavericks.linkstated.plist
+          ${CMAKE_BINARY_DIR}/sbin/mt2_linkstated ${CMAKE_SOURCE_DIR}/dist/dev.mavergreen.voodooinputmavericks.linkstated.plist
   COMMENT "Installing + loading the mt2_linkstated LaunchDaemon")
 add_dependencies(linkstate-install mt2_linkstated)
 add_custom_target(linkstate-uninstall
@@ -115,7 +115,7 @@ include(MavericksSparkle)
 mavericks_add_updater_app(
   NAME Trackpad2Updater
   PRODUCT_NAME "Mavericks Trackpad 2"
-  BUNDLE_ID dev.modernmavericks.Trackpad2Updater
+  BUNDLE_ID dev.mavergreen.Trackpad2Updater
   FEED_URL "https://github.com/Mavergreen/magic-trackpad2/releases/latest/download/appcast.xml"
   ED_PUBKEY "/XQ+fNmP4nxdj9jnKmJDwL8rnsKYz6Kg5X61REAIqkI="   # Mavergreen org key; see the bridge note above
   ICON "${CMAKE_CURRENT_SOURCE_DIR}/voodooinputmavericks_updater/Trackpad2Updater.icns"
@@ -130,9 +130,9 @@ mavericks_add_updater_app(
 mavericks_assert_binary_compatible(Trackpad2Updater)
 
 add_custom_target(updater-install
-  COMMAND sudo ${CMAKE_COMMAND} -E rm -rf "/Library/Application Support/ModernMavericks/Trackpad2Updater.app"
-  COMMAND sudo ${CMAKE_COMMAND} -E copy_directory ${CMAKE_BINARY_DIR}/Trackpad2Updater.app "/Library/Application Support/ModernMavericks/Trackpad2Updater.app"
-  COMMAND ${CMAKE_COMMAND} -E echo "Installed /Library/Application Support/ModernMavericks/Trackpad2Updater.app"
+  COMMAND sudo ${CMAKE_COMMAND} -E rm -rf "/Library/Application Support/Mavergreen/Trackpad2Updater.app"
+  COMMAND sudo ${CMAKE_COMMAND} -E copy_directory ${CMAKE_BINARY_DIR}/Trackpad2Updater.app "/Library/Application Support/Mavergreen/Trackpad2Updater.app"
+  COMMAND ${CMAKE_COMMAND} -E echo "Installed /Library/Application Support/Mavergreen/Trackpad2Updater.app"
   COMMENT "Installing Trackpad2Updater.app")
 add_dependencies(updater-install Trackpad2Updater)
 

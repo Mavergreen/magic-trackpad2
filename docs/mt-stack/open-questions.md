@@ -756,7 +756,7 @@ then a candidate sink. Real timestamps (post-`syslogd`) for everything after log
 … 8s throttle … :41 kext loads → satellite up + 0xF1 → :42 first frame (1 enable)
 ```
 
-**Root cause (OUR code, shippable):** the loader LaunchDaemon `dev.modernmavericks.voodooinputmavericks`
+**Root cause (OUR code, shippable):** the loader LaunchDaemon `dev.mavergreen.voodooinputmavericks`
 had `RunAtLoad=true`. At boot it ran `voodooinputmavericks-run`, which hits the `/dev/console` session
 guard and **no-ops out** (login screen stays on Apple generic HID) — but that wasted launch armed launchd's
 **~10s respawn throttle** (`KeepAlive=false`, so not a respawn — just the min-interval-between-starts). When
@@ -779,7 +779,7 @@ login→trigger→`kextload` ~4s · enable→first-frame ~2s. The login→kextlo
 ever want more, but it's real (loginwindow + session start + the actual kext load), not a throttle.
 
 **Tools:** `tools/spikes/bt_powercycle.m` (suspend/resume controller replay), `blued_stall.d` (dtrace),
-`bt_unpair.m` (unpair by address). Fix commit touches `dist/dev.modernmavericks.voodooinputmavericks.plist`
+`bt_unpair.m` (unpair by address). Fix commit touches `dist/dev.mavergreen.voodooinputmavericks.plist`
 (+ stale-comment fixes in `voodooinputmavericks-run` and `voodooinputmavericks_pkg.cmake`).
 
 ---
@@ -2127,7 +2127,7 @@ architectural, not a typo:
   `IOBluetoothHIDDriver`.
 - The only MT2 `IOHIDDevice` IOHIDManager now sees is OUR synthetic `MavericksHIDShell` (`ProductID 0x030e`,
   under the `VoodooInput` mux, fed from `IOBluetoothL2CAPChannel`; `CFBundleIdentifier
-  dev.modernmavericks.VoodooInputMavericks`). It declares `0x55` in its descriptor but returns
+  dev.mavergreen.VoodooInputMavericks`). It declares `0x55` in its descriptor but returns
   `kIOReturnUnsupported` for feature GET/SET — it does NOT forward feature reports to the real device.
 - `mavericks_name_write_onboard()` (voodooinputmavericks_prefpane_refresh.c ~1330) matches
   `kIOHIDProductIDKey=0x0265` via IOHIDManager → finds nothing (the real device isn't an IOHIDDevice) → bails

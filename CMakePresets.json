@@ -1,7 +1,7 @@
 {
   "version": 6,
   "cmakeMinimumRequired": { "major": 3, "minor": 25, "patch": 0 },
-  "include": ["/usr/local/mavericks-shipyard/share/cmake/MavericksShipyard/mavericks-presets.json"],
+  "include": ["/usr/local/mavergreen-shipyard/share/cmake/MavericksShipyard/mavericks-presets.json"],
   "configurePresets": [
     {
       "name": "native",
