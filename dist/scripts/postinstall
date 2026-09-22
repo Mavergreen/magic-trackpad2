@@ -80,9 +80,9 @@ if [ -f "$AGENT_LOAD" ]; then
 fi
 
 # ONE-TIME MIGRATION off the ModernMavericks identity (flag day 2026-09-22): forget the pre-rename pkg
-# receipt and carry each user's updater preferences to the renamed domain. (The old update-check agent
-# and updater app are retired by the agent-load snippet just above, which is why it is sourced with this
-# script's own arguments intact: it reads the target volume from $3.) DELETABLE once no pre-flag-day
+# receipt. (The old update-check agent and updater app are retired, and each user's updater preferences
+# carried to the renamed domain, by the agent-load snippet just above -- which is why it is sourced with
+# this script's own arguments intact: it reads the target volume from $3.) DELETABLE once no pre-flag-day
 # install survives (see shipyard SKILL.md "Consolidation backlog").
 sh "$(dirname "$0")/flag-day-migration.sh" post "$3" || true
 

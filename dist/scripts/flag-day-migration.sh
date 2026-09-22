@@ -18,8 +18,8 @@
 #   LaunchAgent   dev.modernmavericks.voodooinputmavericks.session     -> here ("pre")
 #   LaunchAgent   dev.modernmavericks.voodooinputmavericks.updatecheck -> shipyard's agent-load snippet,
 #   Trackpad2Updater.app in Application Support/ModernMavericks        -> which the postinstall sources
+#   prefs domain  dev.modernmavericks.Trackpad2Updater (per user)      -> (it also COPIES these forward)
 #   pkg receipt   dev.modernmavericks.voodooinputmavericks             -> here ("post"), forgotten
-#   prefs domain  dev.modernmavericks.Trackpad2Updater (per user)      -> here ("post"), COPIED, never moved
 #   kext          dev.modernmavericks.VoodooInputMavericks             -> nothing to remove: same file path,
 #                 overwritten by the payload. The RESIDENT old driver is left running until the next
 #                 boot (never hot-unloaded, see the preinstall), and voodooinputmavericks-run refuses to
@@ -66,19 +66,6 @@ pre)
 post)
     # The old receipt would otherwise claim these files forever, under a package nothing will update.
     pkgutil --volume "$TARGET" --forget dev.modernmavericks.voodooinputmavericks >/dev/null 2>&1 || true
-    # The updater's per-user preferences (the "Check automatically" opt-in, Sparkle's last-check time
-    # and skipped version, the pane's update-available hint) are keyed by its bundle id, which moved.
-    # COPY each user's old domain to the new name when the new one does not exist yet: never clobber a
-    # choice already made under the new identity, and never delete the user's data. A file copy (not
-    # `defaults`) so it reaches every account on the target, logged in or not; cp -p keeps the owner
-    # and mode. Nothing has read the new domain before this install, so no cfprefsd holds a stale copy.
-    for old in "$ROOT"/Users/*/Library/Preferences/dev.modernmavericks.Trackpad2Updater.plist; do
-        [ -f "$old" ] || continue
-        new="${old%/*}/dev.mavergreen.Trackpad2Updater.plist"
-        [ -e "$new" ] && continue
-        cp -p "$old" "$new" 2>/dev/null \
-            || echo "VoodooInputMavericks: could not carry $old forward; that user's update settings start fresh" >&2
-    done
     ;;
 *)
     echo "flag-day-migration.sh: unknown phase '$PHASE' (want pre|post)" >&2

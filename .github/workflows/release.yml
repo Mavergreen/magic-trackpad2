@@ -267,6 +267,25 @@ jobs:
             --notes-file "$MT2_BUILD_DIR/RELEASE_NOTES.md" --pkg "$PKG" --min-os 10.9.5 > "$MT2_BUILD_DIR/appcast.xml"
           echo "=== appcast.xml ==="; cat "$MT2_BUILD_DIR/appcast.xml"
 
+      # What comes OUT, held to the family's schemes (shipyard SKILL.md "Artifact conformance"): pkg
+      # identity + floor + version, every installed bundle id, launchd Label and path, and -- on a
+      # publishing run -- the appcast's enclosure and notes against the release body. Every run, not
+      # just releases, so a PR that breaks an identity fails here. Staged into a dir of its own because
+      # the build dir also holds the intermediate voodooinputmavericks-component.pkg, which is not
+      # shipped and has no floor of its own. Declared deviations live in INGREDIENTS.md.
+      - name: Artifact conformance
+        run: |
+          set -eu
+          DIST="$RUNNER_TEMP/conformance-dist"
+          rm -rf "$DIST"; mkdir -p "$DIST"
+          VER="${{ steps.ver.outputs.version }}"
+          cp "$MT2_BUILD_DIR/voodooinputmavericks-$VER.pkg" "$DIST/"
+          for f in appcast.xml RELEASE_NOTES.md; do
+            [ ! -f "$MT2_BUILD_DIR/$f" ] || cp "$MT2_BUILD_DIR/$f" "$DIST/"
+          done
+          sh "$SHIPYARD_SCRIPTS/artifact-facts.sh" "$DIST" "$VER" . \
+            | sh "$SHIPYARD_SCRIPTS/check-artifact-conformance.sh"
+
       # publish-release.yml attaches EVERY file in this artifact (bar RELEASE_NOTES.md) as a release
       # asset, so it holds exactly the pkg, and on a publishing run the appcast + notes -- nothing else.
       - name: Upload build artifact
