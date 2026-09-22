@@ -5,7 +5,7 @@
 # Run it on the modern Mac (e.g. taavibookair / Sequoia); it self-elevates with sudo,
 # attaches dtrace to bluetoothd via mt2_oob_capture.d, and tees output to a log file.
 #
-#   sh /Users/schmonz/Documents/code/trees/mavericks-magic-trackpad2/tools/mt2_oob_capture.sh
+#   sh /Users/schmonz/Documents/code/trees/mavergreen-magic-trackpad2/tools/mt2_oob_capture.sh
 #   # (optional) pass a log path:  sh …/mt2_oob_capture.sh /tmp/mycapture.txt
 #
 # Then: make sure the MT2 is NOT paired to this Mac (Forget it in System Settings >

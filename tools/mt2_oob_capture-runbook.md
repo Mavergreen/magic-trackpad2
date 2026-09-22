@@ -7,7 +7,7 @@ uses `dtrace` to hook `IOHIDDeviceSetReport` in `bluetoothd`.
 
 **Run it on:** `taavibookair.local` (Sequoia 15.7.7, x86_64). The repo is on the same NFS mount,
 so the capture scripts are already present at
-`/Users/schmonz/Documents/code/trees/mavericks-magic-trackpad2/tools/`.
+`/Users/schmonz/Documents/code/trees/mavergreen-magic-trackpad2/tools/`.
 
 **Why a runbook:** the first attempt hit `failed to grab pid 181` — SIP's DTrace/Debugging
 Restrictions block attaching to the hardened `bluetoothd`. These steps relax that just long enough
@@ -38,7 +38,7 @@ reboot
 ### 2. Run the capture
 Back in the OS, in a normal Terminal:
 ```
-sh /Users/schmonz/Documents/code/trees/mavericks-magic-trackpad2/tools/mt2_oob_capture.sh
+sh /Users/schmonz/Documents/code/trees/mavergreen-magic-trackpad2/tools/mt2_oob_capture.sh
 ```
 It self-elevates (one sudo password) and logs to `/tmp/mt2_oob_capture-<timestamp>.txt`.
 It should sit and wait (no error).
