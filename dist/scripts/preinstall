@@ -7,8 +7,4 @@
 # at the next boot (see postinstall + test_install_kext_load.sh). Standard macOS kext-update model.
 launchctl unload /Library/LaunchDaemons/dev.mavergreen.voodooinputmavericks.plist 2>/dev/null || true
 launchctl unload /Library/LaunchDaemons/dev.mavergreen.voodooinputmavericks.linkstated.plist 2>/dev/null || true
-# ONE-TIME MIGRATION off the ModernMavericks identity (flag day 2026-09-22): stop and remove the
-# pre-rename daemons + session agent, which the new payload does not overwrite. DELETABLE once no
-# pre-flag-day install survives (see shipyard SKILL.md "Consolidation backlog").
-sh "$(dirname "$0")/flag-day-migration.sh" pre "$3" || true
 exit 0

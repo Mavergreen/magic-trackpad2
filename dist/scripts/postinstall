@@ -30,7 +30,7 @@ launchctl load -w "$PLIST"
 # kext-update model (stage, apply at reboot); we just tell the user.
 TRIGGER=/usr/local/var/voodooinputmavericks/session.trigger
 mkdir -p "$(dirname "$TRIGGER")"
-if kextstat 2>/dev/null | grep -qE "VoodooInputMavericks|MT2Gesture|MavericksVoodooInputHost|MT2Claim|MT2USBClaim"; then
+if kextstat 2>/dev/null | grep -q "VoodooInputMavericks"; then
     # UPDATE: a prior kext of ours is resident -> STAGE only; the new kext applies at the next boot. We do
     # NOT pop a dialog here -- an installer-script osascript alert is un-Apple. The Trackpad pane surfaces
     # the "restart to finish" nudge when it sees the on-disk kext is newer than the resident one.
@@ -78,13 +78,6 @@ AGENT_LOAD="$(dirname "$0")/agent-load.sh"
 if [ -f "$AGENT_LOAD" ]; then
     . "$AGENT_LOAD"
 fi
-
-# ONE-TIME MIGRATION off the ModernMavericks identity (flag day 2026-09-22): forget the pre-rename pkg
-# receipt. (The old update-check agent and updater app are retired, and each user's updater preferences
-# carried to the renamed domain, by the agent-load snippet just above -- which is why it is sourced with
-# this script's own arguments intact: it reads the target volume from $3.) DELETABLE once no pre-flag-day
-# install survives (see shipyard SKILL.md "Consolidation backlog").
-sh "$(dirname "$0")/flag-day-migration.sh" post "$3" || true
 
 # Connect/disconnect bezel: our BezelServices plugin (installed above) reuses Apple's OWN trackpad art,
 # copied here from the co-resident AppleBluetoothMultitouch.plugin — we ship no art (nothing Apple-derived

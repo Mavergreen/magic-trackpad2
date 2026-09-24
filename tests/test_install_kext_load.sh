@@ -35,5 +35,13 @@ else
     echo "PASS: loader is WatchPaths-only"
 fi
 
+for lbl in dev.mavergreen.voodooinputmavericks dev.mavergreen.voodooinputmavericks.linkstated; do
+    if grep -q "launchctl unload /Library/LaunchDaemons/$lbl.plist" "$PRE"; then
+        echo "PASS: preinstall unloads $lbl"
+    else
+        echo "FAIL: preinstall no longer unloads the current daemon $lbl"; fail=1
+    fi
+done
+
 [ "$fail" = 0 ] && echo "ALL PASS" || echo "FAIL"
 exit $fail

@@ -82,9 +82,6 @@ add_test(NAME test_conn_trace_parser COMMAND sh ${CMAKE_SOURCE_DIR}/tests/test_c
 add_test(NAME test_appcast_notes COMMAND sh ${CMAKE_SOURCE_DIR}/tests/test_appcast_notes.sh ${MavericksShipyard_SCRIPTS})
 set_tests_properties(test_appcast_notes PROPERTIES SKIP_RETURN_CODE 77)
 add_test(NAME test_install_kext_load COMMAND sh ${CMAKE_SOURCE_DIR}/tests/test_install_kext_load.sh)
-add_test(NAME test_install_scripts_clean COMMAND sh ${CMAKE_SOURCE_DIR}/tests/test_install_scripts_clean.sh)
-# ONE-TIME MIGRATION off the ModernMavericks identity (flag day 2026-09-22); deleted with it.
-add_test(NAME test_flag_day_migration COMMAND sh ${CMAKE_SOURCE_DIR}/tests/test_flag_day_migration.sh)
 
 # Build-artifact invariant: shipped Info.plists lint clean + updater has SUFeedURL/SUPublicEDKey.
 # (The 10.9-safety compat guard is now a per-target POST_BUILD via mavericks_assert_binary_compatible() in
