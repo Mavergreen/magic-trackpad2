@@ -1,4 +1,5 @@
 #!/usr/bin/env bats
+# platform: macOS-only -- tools/re disassembles macOS system binaries with otool and nm
 bats_require_minimum_version 1.5.0
 # Tests for tools/re — the reverse-engineering toolkit.
 #

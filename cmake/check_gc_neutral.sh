@@ -1,4 +1,5 @@
 #!/bin/sh
+# platform: macOS-only -- otool reads the injected bundle's Mach-O sections
 # Fail the build if a Mach-O carries __objc_imageinfo.
 #
 # 10.9 System Preferences runs Objective-C garbage collection and REFUSES to load any bundle that

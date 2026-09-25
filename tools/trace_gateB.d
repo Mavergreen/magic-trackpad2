@@ -1,4 +1,3 @@
-#!/usr/sbin/dtrace -s
 /*
  * trace_gateB.d - find the first failing sub-gate inside
  * MTChordCycling::tapHasValidTimingAndStrength (it now FIRES but returns false).

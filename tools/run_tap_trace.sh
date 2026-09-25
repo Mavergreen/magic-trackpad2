@@ -1,4 +1,5 @@
 #!/bin/sh
+# platform: macOS-only -- dtrace traces hidd
 # run_tap_trace.sh - orchestrate the round-5 tap-blocker capture.
 #
 # Attaches trace_tap.d to hidd (the recognizer host), injects a few synthetic taps via

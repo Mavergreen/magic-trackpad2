@@ -1,4 +1,5 @@
 #!/bin/sh
+# platform: host-agnostic
 # Pre-push guard: never push a release tag (v*) by hand.
 #
 # Releases are cut by dispatching .github/workflows/release.yml with release=true from main; shipyard's

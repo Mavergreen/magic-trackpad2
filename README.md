@@ -56,19 +56,11 @@ shipyard-cmake --build build-native --target install-pkg
 ## Uninstall
 
 ```sh
-sudo launchctl unload /Library/LaunchDaemons/dev.mavergreen.voodooinputmavericks.plist
-launchctl unload /Library/LaunchAgents/dev.mavergreen.voodooinputmavericks.updatecheck.plist
-sudo kextunload -b dev.mavergreen.VoodooInputMavericks
-sudo rm -rf /Library/LaunchDaemons/dev.mavergreen.voodooinputmavericks*.plist \
-    /Library/LaunchAgents/dev.mavergreen.voodooinputmavericks*.plist \
-    "/Library/Application Support/SIMBL/Plugins/VoodooInputMavericksPane.bundle" \
-    "/Library/Application Support/Apple/BezelServices/MavericksMultitouch.plugin" \
-    "/Library/Application Support/Mavergreen/Trackpad2Updater.app" \
-    /usr/local/sbin/voodooinputmavericks-run /usr/local/sbin/mt2_reenumerate \
-    /usr/local/libexec/mt2_linkstated \
-    /usr/local/lib/voodooinputmavericks /usr/local/{var,share}/voodooinputmavericks \
-    /var/db/voodooinputmavericks-boot.state
+sudo mavergreen uninstall trackpad2
 ```
+
+Then restart. The helper removes the files and daemons but never unloads a resident kext, so the
+driver stays loaded until the restart.
 
 ## Layout
 

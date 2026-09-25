@@ -1,4 +1,5 @@
 #!/bin/sh
+# platform: macOS-only -- reads a genuine trackpad's geometry from a modern macOS IORegistry
 # Capture a GENUINE Magic Trackpad 2's multitouch geometry on modern macOS, to diff against what our
 # 10.9 kext seeds. Our seeds (the suspects): Sensor Region = ALL ZEROS, Sensor Rows 13 / Columns 16,
 # Surface Width 16000 / Height 11300. We've proven (on 10.9) the recognizer's position-normalization

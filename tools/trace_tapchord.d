@@ -1,4 +1,3 @@
-#!/usr/sbin/dtrace -s
 /*
  * trace_tapchord.d - pinpoint WHICH bail branch in
  * MTChordCyclingTrackpad::chk4newTapChord rejects our tap.

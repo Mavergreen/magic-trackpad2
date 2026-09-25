@@ -1,4 +1,3 @@
-#!/usr/sbin/dtrace -s
 /* trace_button.d - find what actually POSTS the tap-click button event (the CGEvent source),
  * since queueButtonClickEvent count != CGEvent count. Traces the button-emit path:
  *   MTAppendMouseButtonEvent           - appends the mouse-button HID event (likely the poster)

@@ -37,6 +37,7 @@ tools/kc_lzss
 tools/kc_carve
 tools/macho_rebase
 tools/multitouch_frames_probe
+tools/mt2_name_probe
 
 # transient working dirs
 /docs/superpowers/

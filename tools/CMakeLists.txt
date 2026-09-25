@@ -92,7 +92,7 @@ add_custom_target(linkstate-uninstall
   COMMAND sh ${CMAKE_SOURCE_DIR}/cmake/dev_linkstated.sh uninstall
   COMMENT "Uninstalling the mt2_linkstated LaunchDaemon")
 
-# ---- Trackpad2Updater.app (shared MavericksSparkle) --------------------------------------
+# ---- trackpad2-updater.app (shared MavericksSparkle) --------------------------------------
 # mavericks_add_updater_app() self-fetches the Sparkle framework (cached under ~/Library/Caches), so there
 # is no MT2_SPARKLE_FRAMEWORK gate/path anymore. Built UNCONDITIONALLY, like the sibling projects (the
 # one-time Sparkle fetch is cached). The updater host lives in mavericks-shipyard (templated
@@ -108,15 +108,11 @@ add_custom_target(linkstate-uninstall
 #      repo-level secret, so the org-level SPARKLE_PRIVATE_KEY (the /XQ+ private half) signs from then
 #      on. Signing the bridge with the org key instead would sign it with a key no installed updater
 #      trusts yet, and the trust check would refuse to write the appcast.
-# Done: v0.5.3 was the bridge, and the repo is now Mavergreen/magic-trackpad2. FEED_URL follows
-# it there; updaters installed from schmonz/mavericks-magic-trackpad2 reach the same feed through
-# GitHub's redirect until they update to a release carrying this URL.
+# Done: v0.5.3 was the bridge, and the repo is now Mavergreen/magic-trackpad2.
 include(MavericksSparkle)
 mavericks_add_updater_app(
-  NAME Trackpad2Updater
+  PRODUCT trackpad2
   PRODUCT_NAME "Mavericks Trackpad 2"
-  BUNDLE_ID dev.mavergreen.Trackpad2Updater
-  FEED_URL "https://github.com/Mavergreen/magic-trackpad2/releases/latest/download/appcast.xml"
   ED_PUBKEY "/XQ+fNmP4nxdj9jnKmJDwL8rnsKYz6Kg5X61REAIqkI="   # Mavergreen org key; see the bridge note above
   ICON "${CMAKE_CURRENT_SOURCE_DIR}/voodooinputmavericks_updater/Trackpad2Updater.icns"
   VERSION "${MAVERICKS_VERSION}"
@@ -126,15 +122,18 @@ mavericks_add_updater_app(
   CONFIRM_BODY "The trackpad driver was updated and is ready to use."
   RELAUNCH_MARKER "/tmp/.mt2updater-relaunched"
   PANE_HINT_KEY "MT2AvailableUpdateVersion")
+target_compile_definitions(VoodooInputMavericksPane_simbl PRIVATE
+  MAVERICKS_UPDATER_BUNDLE_ID_STR="${MAVERICKS_UPDATER_BUNDLE_ID}"
+  MAVERICKS_UPDATER_NAME_STR="${MAVERICKS_UPDATER_TARGET}")
 
-mavericks_assert_binary_compatible(Trackpad2Updater)
+mavericks_assert_binary_compatible(${MAVERICKS_UPDATER_TARGET})
 
 add_custom_target(updater-install
-  COMMAND sudo ${CMAKE_COMMAND} -E rm -rf "/Library/Application Support/Mavergreen/Trackpad2Updater.app"
-  COMMAND sudo ${CMAKE_COMMAND} -E copy_directory ${CMAKE_BINARY_DIR}/Trackpad2Updater.app "/Library/Application Support/Mavergreen/Trackpad2Updater.app"
-  COMMAND ${CMAKE_COMMAND} -E echo "Installed /Library/Application Support/Mavergreen/Trackpad2Updater.app"
-  COMMENT "Installing Trackpad2Updater.app")
-add_dependencies(updater-install Trackpad2Updater)
+  COMMAND sudo ${CMAKE_COMMAND} -E rm -rf "/Library/Application Support/Mavergreen/${MAVERICKS_UPDATER_TARGET}.app"
+  COMMAND sudo ${CMAKE_COMMAND} -E copy_directory ${CMAKE_BINARY_DIR}/${MAVERICKS_UPDATER_TARGET}.app "/Library/Application Support/Mavergreen/${MAVERICKS_UPDATER_TARGET}.app"
+  COMMAND ${CMAKE_COMMAND} -E echo "Installed /Library/Application Support/Mavergreen/${MAVERICKS_UPDATER_TARGET}.app"
+  COMMENT "Installing ${MAVERICKS_UPDATER_TARGET}.app")
+add_dependencies(updater-install ${MAVERICKS_UPDATER_TARGET})
 
 # NB (shared-cmake refactor, before the package became mavericks-shipyard): the EdDSA signer is no
 # longer built by this project. Signing moved to shipyard's scripts/sign_and_appcast.sh (prebuilt

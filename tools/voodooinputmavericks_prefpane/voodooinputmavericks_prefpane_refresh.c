@@ -67,7 +67,8 @@ extern CFDictionaryRef OSKextCopyLoadedKextInfo(CFArrayRef kextIdentifiers, CFAr
 #endif
 
 /* Sparkle + the daily auto-check agent read this key from the updater's own prefs domain. */
-#define MAVERICKS_UPDATER_DOMAIN CFSTR("dev.mavergreen.Trackpad2Updater")
+#define MAVERICKS_UPDATER_DOMAIN CFSTR(MAVERICKS_UPDATER_BUNDLE_ID_STR)
+#define MAVERICKS_UPDATER_APP "/Library/Application Support/Mavergreen/" MAVERICKS_UPDATER_NAME_STR ".app"
 
 /* ============================================================================================
  * 1. GENERIC HELPERS — objc dispatch shims + core cross-section state
@@ -91,7 +92,7 @@ static int responds(id obj, SEL s) {
  * on-device 2026-07-06: Autoupdate stuck waiting on a host pid that had already exited). The updater is
  * now a normal foreground app (not LSUIElement), so `open` also brings its Sparkle dialog to the front. */
 static void mavericks_launch_updater(void) {
-    const char *app = "/Library/Application Support/Mavergreen/Trackpad2Updater.app";
+    const char *app = MAVERICKS_UPDATER_APP;
     if (access(app, F_OK) != 0) { LOG("updater: %s not installed", app); return; }
     /* --args --user: this is an EXPLICIT summon, so the updater runs its interactive check and reports
      * status. Without it the opt-in updater treats the launch as a silent probe and shows nothing. */
@@ -790,7 +791,7 @@ static id mavericks_make_button(CGRect frame, CFStringRef title, SEL action) {
  * to compile-baked. CF-only (no ObjC syntax) so it stays GC-neutral. */
 static CFStringRef mavericks_installed_version_copy(void) {
     CFURLRef url = CFURLCreateWithFileSystemPath(kCFAllocatorDefault,
-        CFSTR("/Library/Application Support/Mavergreen/Trackpad2Updater.app/Contents/Info.plist"),
+        CFSTR(MAVERICKS_UPDATER_APP "/Contents/Info.plist"),
         kCFURLPOSIXPathStyle, false);
     if (!url) return NULL;
     CFReadStreamRef s = CFReadStreamCreateWithFile(kCFAllocatorDefault, url);
@@ -849,7 +850,7 @@ static int mavericks_resident_kext_version(char *buf, unsigned long n) {
  * kext bundle, so it's independent of whether the updater app is present. 1 + buf on success. */
 static int mavericks_ondisk_kext_version(char *buf, unsigned long n) {
     CFURLRef url = CFURLCreateWithFileSystemPath(kCFAllocatorDefault,
-        CFSTR("/usr/local/lib/voodooinputmavericks/VoodooInputMavericks.kext/Contents/Info.plist"),
+        CFSTR("/usr/local/mavergreen/trackpad2/lib/VoodooInputMavericks.kext/Contents/Info.plist"),
         kCFURLPOSIXPathStyle, false);
     if (!url) return 0;
     CFReadStreamRef s = CFReadStreamCreateWithFile(kCFAllocatorDefault, url);
@@ -874,7 +875,7 @@ static int mavericks_ondisk_kext_version(char *buf, unsigned long n) {
 /* Is a staged update pending a restart? True when the ON-DISK kext version differs from the RESIDENT one
  * — Model A stages the new kext on disk and it loads at the next boot. Fills target with the on-disk
  * version (what you'd update TO). If either version is unreadable, don't nag. A dev/QA override forces it:
- *     defaults write dev.mavergreen.Trackpad2Updater MT2RestartBannerTest -bool YES
+ *     defaults write dev.mavergreen.voodooinputmavericks.updater MT2RestartBannerTest -bool YES
  * CF-only, GC-neutral. */
 static int mavericks_restart_pending(char *target, unsigned long tn) {
     char ondisk[48], resident[48];

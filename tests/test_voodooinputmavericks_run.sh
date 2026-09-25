@@ -1,4 +1,5 @@
 #!/bin/sh
+# platform: host-agnostic
 # Tests the voodooinputmavericks-run boot wrapper's sentinel state machine in dry-run mode.
 # Dry-run (MT2D_DRYRUN=1) decides MODE and updates the state file but performs
 # no kextload/exec, so the brick-guard logic is testable without a real panic.

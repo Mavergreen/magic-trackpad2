@@ -1,4 +1,5 @@
 #!/bin/sh
+# platform: macOS-only -- builds against IOKit to post synthetic taps
 # tap_clicks.sh - hands-free CGEvent oracle for tap-to-click. Rebuilds synth_tap (so any src/
 # change is included), streams N taps through ONE held-open connection, and classifies the
 # resulting CGEvent clicks into CLEAN vs PHANTOM.

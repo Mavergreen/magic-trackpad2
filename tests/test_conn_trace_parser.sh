@@ -1,4 +1,5 @@
 #!/bin/sh
+# platform: host-agnostic
 # Asserts `tools/re conn-trace` renders the right per-connection verdict for known fixtures.
 set -e
 here=$(dirname "$0")

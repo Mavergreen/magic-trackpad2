@@ -1,4 +1,5 @@
 #!/bin/sh
+# platform: macOS-only -- launchctl loads the linkstated LaunchDaemon
 # Install/uninstall the mt2_linkstated LaunchDaemon (the MT2's transport link-state coordinator:
 # reconnect keeper + USB-removal handoff + USB-appear yield + USB-appear hidd gesture-kick + shutdown
 # quiesce). Root LaunchDaemon (not a per-user Agent) so it runs regardless of GUI session; the `|| true`
@@ -6,10 +7,10 @@
 # Usage: dev_linkstated.sh install <daemon_bin> <plist> | uninstall
 set -e
 DAEMON=/Library/LaunchDaemons/dev.mavergreen.voodooinputmavericks.linkstated.plist
-BIN=/usr/local/libexec/mt2_linkstated
+BIN=/usr/local/mavergreen/trackpad2/libexec/mt2_linkstated
 case "$1" in
   install)
-    sudo mkdir -p /usr/local/libexec
+    sudo mkdir -p /usr/local/mavergreen/trackpad2/libexec
     sudo cp "$2" "$BIN"
     sudo cp "$3" "$DAEMON"
     sudo chown root:wheel "$DAEMON"

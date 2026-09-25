@@ -1,4 +1,5 @@
 #!/bin/sh
+# platform: macOS-only -- ioreg counts the kext's AppleMultitouchDevice instances
 # mt2_amd_oracle — assert the fabricated AppleMultitouchDevice count returns to baseline after teardown.
 # Drives debug.mt2_amd_probe (needs the SP1 kext loaded). Exit 0 = clean, 1 = orphan/leak detected.
 #

@@ -82,11 +82,13 @@ add_test(NAME test_conn_trace_parser COMMAND sh ${CMAKE_SOURCE_DIR}/tests/test_c
 add_test(NAME test_appcast_notes COMMAND sh ${CMAKE_SOURCE_DIR}/tests/test_appcast_notes.sh ${MavericksShipyard_SCRIPTS})
 set_tests_properties(test_appcast_notes PROPERTIES SKIP_RETURN_CODE 77)
 add_test(NAME test_install_kext_load COMMAND sh ${CMAKE_SOURCE_DIR}/tests/test_install_kext_load.sh)
+add_test(NAME test_install_hooks COMMAND sh ${CMAKE_SOURCE_DIR}/tests/test_install_hooks.sh)
 
 # Build-artifact invariant: shipped Info.plists lint clean + updater has SUFeedURL/SUPublicEDKey.
 # (The 10.9-safety compat guard is now a per-target POST_BUILD via mavericks_assert_binary_compatible() in
 # tools/CMakeLists.txt -- it fails `shipyard-cmake --build` directly, so it is no longer a ctest here.)
 add_test(NAME test_plists COMMAND sh ${CMAKE_SOURCE_DIR}/cmake/check_plists.sh ${CMAKE_BINARY_DIR})
+add_test(NAME test_pane_updater_identity COMMAND sh ${CMAKE_SOURCE_DIR}/cmake/check_pane_updater_identity.sh $<TARGET_FILE:VoodooInputMavericksPane_simbl> ${MavericksShipyard_SCRIPTS} trackpad2)
 
 
 find_program(BATS_EXE bats)

@@ -1,4 +1,5 @@
 #!/bin/sh
+# platform: macOS-only -- lipo and otool characterize the built kext's Mach-O
 # Cross-build equivalence gate.
 #
 # Characterize the TOOLCHAIN-INVARIANT, source/header-determined properties of a

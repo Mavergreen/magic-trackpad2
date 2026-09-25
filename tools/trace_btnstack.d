@@ -1,4 +1,3 @@
-#!/usr/sbin/dtrace -s
 /* trace_btnstack.d - capture the CALLER of each MTAppendMouseButtonEvent (down/up), to find
  * what emits the phantom (2nd) click. arg1: 1=down 0=up. ustack shows the recognizer caller. */
 #pragma D option quiet

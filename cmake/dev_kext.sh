@@ -1,4 +1,5 @@
 #!/bin/sh
+# platform: macOS-only -- kextload loads the dev-built kext
 # Kext load/unload helper for the CMake kext-load / kext-unload targets (ports the old
 # kext-gesture/Makefile load/unload). Kept in a script so the multi-step load sequence
 # and the tolerant (|| true) steps stay readable — CMake's COMMAND can't express

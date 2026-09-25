@@ -263,10 +263,10 @@ jobs:
           # no appcast is written. $MT2_BUILD_DIR/RELEASE_NOTES.md (generated above) is inlined as the
           # appcast <description> -- the very file that also becomes the GitHub Release body.
           [ -f "$SHIPYARD_SCRIPTS/sign_and_appcast.sh" ] || { echo "::error::no sign_and_appcast.sh under SHIPYARD_SCRIPTS='$SHIPYARD_SCRIPTS'"; exit 1; }
-          sh "$SHIPYARD_SCRIPTS/sign_and_appcast.sh" \
+          sh "$SHIPYARD_SCRIPTS/sign_and_appcast.sh" --product trackpad2 --feed-dir "$MT2_BUILD_DIR" \
             --channel-title "Mavericks Trackpad 2" --version "$VER" --pkg-url "$URL" \
-            --notes-file "$MT2_BUILD_DIR/RELEASE_NOTES.md" --pkg "$PKG" --min-os 10.9.5 > "$MT2_BUILD_DIR/appcast.xml"
-          echo "=== appcast.xml ==="; cat "$MT2_BUILD_DIR/appcast.xml"
+            --notes-file "$MT2_BUILD_DIR/RELEASE_NOTES.md" --pkg "$PKG" --min-os 10.9.5
+          echo "=== trackpad2.xml ==="; cat "$MT2_BUILD_DIR/trackpad2.xml"
 
       # What comes OUT, held to the family's schemes (shipyard SKILL.md "Artifact conformance"): pkg
       # identity + floor + version, every installed bundle id, launchd Label and path, and -- on a
@@ -281,9 +281,10 @@ jobs:
           rm -rf "$DIST"; mkdir -p "$DIST"
           VER="${{ steps.ver.outputs.version }}"
           cp "$MT2_BUILD_DIR/voodooinputmavericks-$VER.pkg" "$DIST/"
-          for f in appcast.xml RELEASE_NOTES.md; do
+          for f in trackpad2.xml RELEASE_NOTES.md; do
             [ ! -f "$MT2_BUILD_DIR/$f" ] || cp "$MT2_BUILD_DIR/$f" "$DIST/"
           done
+          [ -f "$DIST/trackpad2.xml" ] || sh "$SHIPYARD_SCRIPTS/stand-in-feeds.sh" "$DIST" "$VER"
           sh "$SHIPYARD_SCRIPTS/artifact-facts.sh" "$DIST" "$VER" . \
             | sh "$SHIPYARD_SCRIPTS/check-artifact-conformance.sh"
 
@@ -293,10 +294,10 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: voodooinputmavericks-pkg
-          if-no-files-found: warn   # the .pkg always exists; appcast.xml + RELEASE_NOTES.md only when publishing
+          if-no-files-found: warn   # the .pkg always exists; trackpad2.xml + RELEASE_NOTES.md only when publishing
           path: |
             ${{ env.MT2_BUILD_DIR }}/voodooinputmavericks-${{ steps.ver.outputs.version }}.pkg
-            ${{ env.MT2_BUILD_DIR }}/appcast.xml
+            ${{ env.MT2_BUILD_DIR }}/trackpad2.xml
             ${{ env.MT2_BUILD_DIR }}/RELEASE_NOTES.md
 
   # Before anything is published: no log of this run, and no file about to be released, carries a

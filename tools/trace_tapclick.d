@@ -1,4 +1,3 @@
-#!/usr/sbin/dtrace -s
 /*
  * trace_tapclick.d - observe the FULL tap->click decision chain in the native recognizer
  * (MultitouchHID, hosted in hidd) for REAL finger taps. Removes CGEvent-counting noise:

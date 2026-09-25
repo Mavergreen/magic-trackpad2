@@ -1,4 +1,5 @@
 #!/bin/sh
+# platform: macOS-only -- kextunload and kextload hot-reload the running kext
 # Hot-reload the gesture kext (ports the old Makefile `reload`): unload -> wait for our
 # nub + BNB to drain (bounded; avoids the async-teardown collision) -> load -> bounce
 # whichever transport is present (BT via mt2_bt_bounce, USB via mt2_reenumerate; the

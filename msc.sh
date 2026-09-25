@@ -16,7 +16,7 @@ if [ ! -d "$SHIPYARD" ]; then
   #           shipyard-cmake, a refused configure) yield the literal "/scripts" -- an absolute path,
   #           plausible-looking, and the error below would then complain about the wrong thing. So
   #           assign the probe's answer first and append only if there was one.
-  _msc_dir="$(shipyard-cmake -S "$_msc_probe" -B "$_msc_probe/b" 2>/dev/null | sed -n 's/^-- SHIPYARD_DIR=//p')"
+  _msc_dir="$("$(command -v shipyard-cmake || echo /usr/local/mavergreen/bin/shipyard-cmake)" -S "$_msc_probe" -B "$_msc_probe/b" 2>/dev/null | sed -n 's/^-- SHIPYARD_DIR=//p')"
   if [ -n "$_msc_dir" ]; then SHIPYARD="$_msc_dir/scripts"; fi
   rm -rf "$_msc_probe"; unset _msc_probe _msc_dir
 fi

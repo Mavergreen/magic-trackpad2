@@ -6,7 +6,7 @@
     <string>dev.mavergreen.voodooinputmavericks</string>
     <key>ProgramArguments</key>
     <array>
-        <string>/usr/local/sbin/voodooinputmavericks-run</string>
+        <string>/usr/local/mavergreen/trackpad2/sbin/voodooinputmavericks-run</string>
     </array>
     <!-- No RunAtLoad, deliberately. A boot-time run would only hit voodooinputmavericks-run's
          /dev/console session guard and no-op out (login screen stays on Apple's generic HID) — but that
@@ -16,7 +16,7 @@
          -> the guard passes -> full multitouch takeover), which is the only path that does real work. -->
     <key>WatchPaths</key>
     <array>
-        <string>/usr/local/var/voodooinputmavericks/session.trigger</string>
+        <string>/usr/local/mavergreen/var/trackpad2/session.trigger</string>
     </array>
     <!-- The wrapper loads the kext, confirms health, and exits; the kext runs
          in-kernel on its own. Do NOT respawn. -->

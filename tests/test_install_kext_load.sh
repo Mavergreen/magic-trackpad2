@@ -1,4 +1,5 @@
 #!/bin/sh
+# platform: host-agnostic
 # Model A -- stage-and-apply-at-reboot. A kext driving the live MT2 cannot be hot-swapped in place (its
 # terminal holds a synthetic IOHIDDevice the HID stack retains, like upstream VoodooInput's simulator),
 # so the install must NOT force-unload a running kext: kextunload does a PARTIAL teardown that kills the
@@ -8,8 +9,8 @@
 set -u
 D="$(dirname "$0")/.."
 PLIST="$D/dist/dev.mavergreen.voodooinputmavericks.plist"
-POST="$D/dist/scripts/postinstall"
-PRE="$D/dist/scripts/preinstall"
+POST="$D/dist/hooks/postinstall.sh"
+PRE="$D/dist/hooks/preinstall.sh"
 fail=0
 
 # 1. Preinstall must NOT kextunload a (possibly-running) kext -- that is the partial-teardown breakage.
@@ -21,7 +22,7 @@ fi
 
 # 2. Postinstall gates the load: fire the WatchPaths trigger only when NO prior kext is resident (fresh
 #    install); on an update it stages silently (the Trackpad pane surfaces the restart nudge -- no dialog).
-if grep -q "kextstat" "$POST" && grep -q 'touch "$TRIGGER"' "$POST"; then
+if grep -q "kextstat" "$POST" && grep -q 'touch "$_trigger"' "$POST"; then
     echo "PASS: postinstall gates load on kextstat -> touch trigger only on a fresh install"
 else
     echo "FAIL: postinstall must gate on kextstat and touch the trigger on a fresh install"; fail=1

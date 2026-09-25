@@ -40,10 +40,12 @@ an upstream this product repackages.
 ## Conformance deviations
 
 - install-path:Library/Application?Support/Apple/BezelServices/MavericksMultitouch.plugin/*: BezelServices loads its connect/disconnect OSD plugins only from /Library/Application Support/Apple/BezelServices, so the trackpad's bezel plugin cannot live anywhere else
+- install-path:Library/Application?Support/SIMBL/Plugins/VoodooInputMavericksPane.bundle/*: SIMBLAgent injects plugins into System Preferences only from /Library/Application Support/SIMBL/Plugins
 - scheme: magic-trackpad2 is its own upstream (original code, no one else's release to repackage), so its version is plain vX.Y.Z with no -mavericks.N axis
+- rosetta:.github/workflows/release.yml: the release job runs on an Apple Silicon (arm64) runner and installs Rosetta ("Ensure Rosetta") so ctest can run the unit tests, which are cross-built x86_64 for 10.9 like everything this pkg ships, before the pkg is built. They cannot run natively there: the binaries under test are the x86_64 ones, and the release runner is arm64 with no Intel runner to use instead. The native 10.9 build runs the same tests untranslated. Reconsider when these tests can move to an x86_64 host (the 10.9 box or an Intel runner) or SKIP without Rosetta; at the latest before macOS 28 removes it.
 
 `release.yml` runs `check-artifact-conformance.sh` on every build, against the shipped `.pkg` (and, on a
-publishing run, the appcast and release notes). Everything else the pkg installs is `dev.mavergreen.*` or
-under `usr/local/`, `Library/Application Support/Mavergreen/`, or a `dev.mavergreen.*` launchd plist.
-(The SIMBL pane bundle lands in `Library/Application Support/SIMBL/Plugins`
-too, but the postinstall copies it there from `usr/local/share/`; it is not in the payload.)
+publishing run, the appcast and release notes). Everything else the pkg installs is under
+`usr/local/mavergreen/trackpad2/`, `Library/Application Support/Mavergreen/`, or a
+`dev.mavergreen.*` launchd plist. State (`session.trigger`, the boot sentinel and the quiesce
+marker) is created in `/usr/local/mavergreen/var/trackpad2/` at install and run time.

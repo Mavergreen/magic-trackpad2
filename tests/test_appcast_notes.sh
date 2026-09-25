@@ -1,4 +1,5 @@
 #!/bin/sh
+# platform: host-agnostic
 # Asserts shipyard's gen_appcast.sh renders our Markdown release notes to the expected HTML fragment
 # (Sparkle shows <description> in a WebView; raw Markdown collapses to one blob).
 #

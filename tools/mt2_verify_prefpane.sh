@@ -1,4 +1,5 @@
 #!/bin/sh
+# platform: macOS-only -- ioreg and System Preferences are what it verifies
 # mt2_verify_prefpane.sh — one-pass on-device verification of the prefpane / BT-UI features.
 #
 # Runs every AUTOMATABLE data-layer check for the battery / icon / button work (they read the

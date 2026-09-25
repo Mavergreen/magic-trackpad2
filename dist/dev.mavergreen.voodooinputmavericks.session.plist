@@ -14,7 +14,7 @@
     <key>ProgramArguments</key>
     <array>
         <string>/usr/bin/touch</string>
-        <string>/usr/local/var/voodooinputmavericks/session.trigger</string>
+        <string>/usr/local/mavergreen/var/trackpad2/session.trigger</string>
     </array>
 </dict>
 </plist>

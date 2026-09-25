@@ -1,4 +1,5 @@
 #!/bin/sh
+# platform: host-agnostic
 # Print this product's version: MAVERICKS_VERSION from CMakeLists.txt, its single source of truth.
 #
 #   scripts/derive-upstream-version.sh      ->   0.5.2

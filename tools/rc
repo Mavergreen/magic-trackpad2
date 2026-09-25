@@ -1,4 +1,5 @@
 #!/bin/sh
+# platform: macOS-only -- osascript drives System Preferences and ioreg reads device state
 # rc — remote-control harness for the Trackpad-prefpane live-update truth-table campaign.
 # One parameterized tool (so a single permission allowlist entry lets it run freely) that drives
 # System Preferences, triggers device terminate/first-match events, screenshots the screen, and reports

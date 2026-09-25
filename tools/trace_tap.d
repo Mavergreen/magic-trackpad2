@@ -1,4 +1,3 @@
-#!/usr/sbin/dtrace -s
 /*
  * trace_tap.d - round-5 tap-blocker capture: find WHERE the tap path dies.
  *

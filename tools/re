@@ -1,4 +1,5 @@
 #!/bin/sh
+# platform: macOS-only -- otool and nm disassemble macOS system binaries
 # re - one reverse-engineering toolkit with subcommands. Unix-filter style, readable,
 # allowlist-friendly (ONE entry covers every subcommand). Replaces the former re/* scripts.
 #
@@ -625,7 +626,7 @@ sub_deployed() {  # what MT2 driver is ACTUALLY loaded + driving right now, and 
   kextstat 2>/dev/null | grep -qiE 'VoodooInputMavericks|MT2Gesture' || echo "  (no MT2 kext loaded)"
 
   echo "== DEPLOYED-ON-DISK vs CURRENT TREE BUILD =="
-  dep=/usr/local/lib/voodooinputmavericks/VoodooInputMavericks.kext/Contents/MacOS/VoodooInputMavericks
+  dep=/usr/local/mavergreen/trackpad2/lib/VoodooInputMavericks.kext/Contents/MacOS/VoodooInputMavericks
   tree=$root/build-native/VoodooInputMavericks.kext/Contents/MacOS/VoodooInputMavericks
   if [ -f "$dep" ] && [ -f "$tree" ]; then
     if cmp -s "$dep" "$tree"; then echo "  MATCH: deployed kext == current tree build"

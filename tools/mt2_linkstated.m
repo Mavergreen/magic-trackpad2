@@ -126,7 +126,7 @@ static void disconnect_matched(const char *why) {
 /* Reliable shutdown oracle: NSLog/ASL does not flush before a reboot, so the quiesce/disconnect log lines
  * are lost across the very reboot we're validating. Write an fsync'd marker instead — it survives, so after
  * boot we can PROVE the quiesce path fired and how many links it closed. Best-effort; never blocks shutdown. */
-#define QUIESCE_MARKER "/var/db/voodooinputmavericks-lastquiesce"
+#define QUIESCE_MARKER "/usr/local/mavergreen/var/trackpad2/lastquiesce"
 static void write_quiesce_marker(const char *why, int closed) {
     int fd = open(QUIESCE_MARKER, O_WRONLY | O_CREAT | O_TRUNC, 0644);
     if (fd < 0) return;

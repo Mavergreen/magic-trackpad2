@@ -1,4 +1,5 @@
 #!/bin/sh
+# platform: macOS-only -- plutil lints and PlistBuddy reads the built bundles' Info.plists
 # Fail the build if a shipped Info.plist is malformed, or the updater ships with a
 # broken self-update configuration.
 #
@@ -20,7 +21,7 @@ BUILD=$1
 PLISTS="
 $BUILD/VoodooInputMavericksPane.bundle/Contents/Info.plist
 $BUILD/VoodooInputMavericks.kext/Contents/Info.plist
-$BUILD/Trackpad2Updater.app/Contents/Info.plist
+$BUILD/trackpad2-updater.app/Contents/Info.plist
 "
 
 fail=0
@@ -37,7 +38,7 @@ for p in $PLISTS; do
 done
 
 # Updater self-update config: SUFeedURL + SUPublicEDKey must be present and non-empty.
-UPD_PLIST="$BUILD/Trackpad2Updater.app/Contents/Info.plist"
+UPD_PLIST="$BUILD/trackpad2-updater.app/Contents/Info.plist"
 if [ -f "$UPD_PLIST" ]; then
   for key in SUFeedURL SUPublicEDKey; do
     val=$(/usr/libexec/PlistBuddy -c "Print :$key" "$UPD_PLIST" 2>/dev/null || true)

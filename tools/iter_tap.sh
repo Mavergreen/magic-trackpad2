@@ -1,4 +1,5 @@
 #!/bin/sh
+# platform: macOS-only -- dtrace traces hidd
 # iter_tap.sh - hands-free tap-to-click iteration loop. Rebuilds synth_tap (so any
 # src/ liftoff change is included), traces hidd's tap->click decision chain, injects N
 # synthetic taps, and prints the summary counts. No real finger needed.

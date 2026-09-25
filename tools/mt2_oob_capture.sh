@@ -1,4 +1,5 @@
 #!/bin/sh
+# platform: macOS-only -- dtrace captures the Bluetooth stack
 # mt2_oob_capture.sh — turnkey capture of the DEVICE-SIDE link-key write during USB
 # out-of-band ("MagicPairing" / HID-Emulation) pairing on a modern macOS, logged to a file.
 #

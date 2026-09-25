@@ -1,4 +1,3 @@
-#!/usr/sbin/dtrace -s
 /*
  * trace_pathts.d - round-6: dump MTPathStageTimestamps + see if the hand-stats stage
  * clock advances with our injected frames.
