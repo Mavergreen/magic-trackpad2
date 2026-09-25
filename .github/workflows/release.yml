@@ -194,7 +194,8 @@ jobs:
 
       - name: Configure + build (x86_64 @ 10.9 userland + kext + updater)
         run: |
-          shipyard-cmake -S . -B "$MT2_BUILD_DIR" -DMT2_MACOSX_10_9_SDK="${{ steps.sdk.outputs.path }}"
+          shipyard-cmake -S . -B "$MT2_BUILD_DIR" -DMT2_MACOSX_10_9_SDK="${{ steps.sdk.outputs.path }}" \
+            -DCMAKE_TOOLCHAIN_FILE="$SHIPYARD_SCRIPTS/../MavericksToolchain.cmake"
           shipyard-cmake --build "$MT2_BUILD_DIR"
           echo "userland slice:"; lipo -info "$MT2_BUILD_DIR/sbin/mt2_reenumerate"
           echo "kext:"; file "$MT2_BUILD_DIR/VoodooInputMavericks.kext/Contents/MacOS/VoodooInputMavericks"
