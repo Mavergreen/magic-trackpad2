@@ -49,3 +49,4 @@ publishing run, the appcast and release notes). Everything else the pkg installs
 `usr/local/mavergreen/trackpad2/`, `Library/Application Support/Mavergreen/`, or a
 `dev.mavergreen.*` launchd plist. State (`session.trigger`, the boot sentinel and the quiesce
 marker) is created in `/usr/local/mavergreen/var/trackpad2/` at install and run time.
+- on-target: a kext for the Magic Trackpad 2, which needs the real device on a real Mac; the 10.9 guest has neither, so it is proven by hand on the maintainer's 10.9 box; exit: the product stops being a kext
