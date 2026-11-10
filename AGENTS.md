@@ -27,5 +27,5 @@ Fix a fact there, not inline.
 - Before any kext load/reload: assess panic risk and get go/no-go; pad off before unload.
 - Always confirm the loaded kext binary contains your edit (`strings | grep`) before trusting a test.
 - Host-green is necessary but not sufficient — verify behavior in the real system.
-- Transient working docs live in `docs/superpowers/` (gitignored, deleted on completion); durable
+- Transient working docs live in `.superpowers/` (gitignored, deleted on completion); durable
   knowledge graduates into `docs/mt-stack/`.

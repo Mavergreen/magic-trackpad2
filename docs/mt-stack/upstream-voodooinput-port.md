@@ -26,7 +26,7 @@
 > the gate takes the same path the old unconditional `goto` did); native build + ctest green (34/34). `IOLog`
 > reaches `VoodooInput.cpp` via a `-include <IOKit/IOLib.h>` compile flag now that the macro block (which
 > carried that include) is gone. On-device is a no-op on the dispatch path — confirmation can ride the next
-> kext reload / 0.5.3. This is part of the "invented fork history" work (`docs/superpowers/` specs/plans dated
+> kext reload / 0.5.3. This is part of the "invented fork history" work (`.superpowers/` specs/plans dated
 > 2026-08-05): the `voodooinput-legacy-terminal` branch is the upstream-PR artifact; a `mavericks-fork` branch
 > (the full-product invented history) is planned next.**
 

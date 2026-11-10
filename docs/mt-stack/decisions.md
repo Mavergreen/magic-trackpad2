@@ -783,7 +783,7 @@ caught a would-be free-before-drain UAF specific to synth mode). BNB stays the B
 does NOT touch the reconnect-enable-fail, which needs owning the wire). Host suite 31/31, default goldens
 unchanged. **PENDING (gated, user away from desk):** the on-device A/B checklist in BOTH modes — cursor ·
 tap · scroll · right-click · 3/4-finger · **prefpane recognition** · **battery** · edges — recorded as the
-divergence table that decides retire-genuine-or-keep-the-split. Spec/plan under `docs/superpowers/`
+divergence table that decides retire-genuine-or-keep-the-split. Spec/plan under `.superpowers/`
 (transient). Do the A/B, THEN update this section with the result.
 
 ### ROOT CAUSE — genuine-path orphaned-AMD kernel panic (2026-07-15), and why it forces full-synthetic
@@ -817,7 +817,7 @@ not generalize (unknown devices have no BNB). Full-synthetic allocs OUR OWN `App
 nub (no manual-started BNB, no unbalanced-busy provider) so WE own start/stop/terminate → a clean teardown is
 achievable. Caveat: synthetic still creates a real `AppleMultitouchDevice`, so its teardown must ALSO
 finalize cleanly (deregister frames-client/workloop before free) — that is SP1's teardown-hardening. See
-`docs/superpowers/specs/` (MT2→full-synthetic program: SP1 map+oracle+harden, SP2 BT own-the-wire, SP3 USB,
+`.superpowers/specs/` (MT2→full-synthetic program: SP1 map+oracle+harden, SP2 BT own-the-wire, SP3 USB,
 SP4 retire genuine).
 
 ### SP1 busy question resolved OFF-DEVICE by RE (2026-07-15) — fabricated AMD is terminatable
@@ -997,6 +997,6 @@ text frees.
 
 **Decision:** stage-and-reboot stands as the shipped path, now with a concrete panic backing it. A
 time-boxed attempt at a self-driven pre-unload quiesce (drain ALL our async surfaces, then unload) is
-specced in `docs/superpowers/specs/2026-07-25-hot-reload-self-quiesce-timeboxed.md`; if it can't be made
+specced in `.superpowers/specs/2026-07-25-hot-reload-self-quiesce-timeboxed.md`; if it can't be made
 bulletproof over many cycles, hot-reload is abandoned. The naive `prepareForReload` spike (enumerate +
 `terminate()` the mux) was reverted — it never touched the readers' timers, which is the actual work.

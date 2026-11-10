@@ -40,7 +40,7 @@ this up.
 
 ## (superseded — original diagnosis) reboot-while-on-BT hangs the warm restart at EFI (kext BT teardown un-quiesced)
 
-The predicted risk from `docs/superpowers/plans/2026-07-21-ondevice-satellite-validation.md` Task 1
+The predicted risk from `.superpowers/plans/2026-07-21-ondevice-satellite-validation.md` Task 1
 ("Reboot while BT-connected — HIGH RISK") **materialized on-device 2026-07-22.** User rebooted while on BT
 (for bezel validation); the machine went dark and **stayed off ~7h** until a manual power-on. Evidence:
 `linkstated` quiesce fired at the shutdown (`quiesced BT for sigterm` at 10:51:24) but the daemon is IDLE
@@ -1729,7 +1729,7 @@ bound in ~1s (`MT2BTReader: setup on PSM=19`). So the login-screen goal is ACHIE
 coming from Apple's basic-HID mode is slow to switch to multitouch). This is the SAME uncracked cold-enable lag
 (direction B), RELOCATED from boot to post-login — NOT a takeover-speed problem (no glyph on takeover either). Accepted
 A as-is (login screen fixed); the enable-lag is now the active dig. Host test: `tests/test_mt2d_run.sh` (session-guard
-cases). Design/plan in `docs/superpowers/` (transient).
+cases). Design/plan in `.superpowers/` (transient).
 
 **2026-07-19 — enable-lag dig (started). Ruled out the KB's leading hypothesis; genuine-stack RE started.** The
 standing theory (reference.md:200) was "0xF1 fired before PSM 19 opens → device never opens PSM 19". CONTRADICTED by
